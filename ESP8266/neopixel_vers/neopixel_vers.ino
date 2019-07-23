@@ -168,7 +168,7 @@ void loop() // Loop start
     s += "<br /><br />";
     s += "<div class='row'>";
     s += "<div class='col-sm-12'>";
-    s += "<a class='btn btn-success btn-block' style='padding-top:3%;padding-bottom:3%;' href=\"BIEN\">FRESH AIR</a>";
+    s += "<a class='btn btn-success btn-lg btn-block' style='padding-top:3%;padding-bottom:3%;' href=\"BIEN\">FRESH AIR</a>";
     s += "<br /><br />";
     s += "<a class='btn btn-primary btn-lg btn-block' style='padding-top:3%;padding-bottom:3%;' href=\"NORMAL\">COMMON AIR</a>";
     s += "<br /><br />";
