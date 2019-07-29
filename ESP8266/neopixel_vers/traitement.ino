@@ -1,4 +1,29 @@
 
+void StripAffiche(String modeStrip){
+  if        (modeStrip == "démarrage") {          // orange
+      strip.setPixelColor(0, strip.Color(255, 165, 0));
+  } else if (modeStrip == "démarré") {            // bleu
+      strip.setPixelColor(0, strip.Color(30, 144, 255));
+  } else if (modeStrip == "wifi non connecté") {  // clignotement orange bleu
+      delay(500);
+      strip.setPixelColor(0, strip.Color(255, 165, 0));
+      strip.show();
+      delay(500);
+      strip.setPixelColor(0, strip.Color(30, 144, 255));
+  } else if (modeStrip == "correct") {            // vert
+      strip.setPixelColor(0, strip.Color(0, 128, 0));
+  } else if (modeStrip == "moyen") {              // orange
+      strip.setPixelColor(0, strip.Color(255, 165, 0));
+  } else if (modeStrip == "mauvais") {            // rouge
+      strip.setPixelColor(0, strip.Color(127, 0, 0));
+  } else if (modeStrip == "début mesure") {       // luminosité forte
+      strip.setBrightness(250);                   //  (max = 255)
+  } else if (modeStrip == "fin mesure") {         // luminosité faible
+      strip.setBrightness(50);
+  }
+  strip.show();
+}
+
 void TraitementMesure(int a, int b, int c){
   Serial.print("Nombre de mesures : "); Serial.print(mes[0].nombre);
   Serial.print(" Valeur : "); Serial.print(mes[0].valeur); Serial.print(" Ecart-type : "); Serial.print(mes[0].ecartType);
@@ -9,7 +34,7 @@ void TraitementMesure(int a, int b, int c){
       //Serial.println("mesure envoyée");
   } 
   else {
-      //Serial.println("mesure non envoyée");
+      Serial.println("mesure non envoyée");
   }
 }
 
@@ -24,17 +49,12 @@ void LireCapteur(){
 void sendData(double z, double k, int a, int b, int c) {
   StaticJsonBuffer<200> jsonBuffer;
   JsonObject &root = jsonBuffer.createObject();
-  String string_a = String(a, 2);
-  String string_b = String(b, 2);
-  String string_c = String(c, 2);
-  String string_z = String(z, 2);
-  String string_k = String(k, 2);
   root["device"] = device_name;
-  root["PM2_5"] = string_z;
-  root["PM10"] = string_k;
-  root["mixed_feeling"] = string_b;
-  root["negative_feeling"] = string_c;
-  root["positive_feeling"] = string_a;
+  root["PM2_5"] = String(z, 2);
+  root["PM10"] = String(k, 2);
+  root["mixed_feeling"] = String(b, 2);
+  root["negative_feeling"] = String(c, 2);
+  root["positive_feeling"] = String(a, 2);
 
   root.printTo(Serial);
   char JSONmessageBuffer[300];
@@ -51,14 +71,8 @@ void sendData(double z, double k, int a, int b, int c) {
     Serial.println(payload);                                            //Print request response payload
     http.end();                                                         //Close connection
   }
-  else
-  {
-    delay(500);
-    strip.setPixelColor(0, strip.Color(255, 165, 0));
-    strip.show();
-    delay(500);
-    strip.setPixelColor(0, strip.Color(30, 144, 255));
-    strip.show();
+  else {
+    StripAffiche("wifi non connecté");
   }
 }
 
@@ -66,16 +80,15 @@ void updateLed(double a, double b) {        //Function UpdateOled Pm value
   int myInt = (int)a;
   switch (myInt) {
     case 0 ... 10:
-      strip.setPixelColor(0, strip.Color(0, 128, 0));
+      StripAffiche("correct");
       break;
     case 11 ... 20:
-      strip.setPixelColor(0, strip.Color(255, 165, 0));
+      StripAffiche("moyen");
       break;
     case 21 ... 1000:
-      strip.setPixelColor(0, strip.Color(127, 0, 0));
+      StripAffiche("mauvais");
       break;
   }
-  strip.show();
 }
 
 void  TraitementRessenti(String requete) {

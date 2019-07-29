@@ -3,7 +3,7 @@
 #include <ESP8266WiFi.h>
 #include <WiFiClientSecure.h>
 #include <ESP8266WiFiMulti.h>
-//#include <WiFiManager.h>
+#include <WiFiManager.h>
 #include <ESP8266mDNS.h>
 #include "SdsDustSensor.h"
 #include <ArduinoJson.h>
@@ -18,7 +18,9 @@
 #define VALEUR_MIN_PM 0.0  // limite mini autorisee pour les PM
 #define VALEUR_MAX_PM 10000.0   // limite maxi autorisee pour les PM
 
-const int nbMes  = 2; // quantité de mesures à effectuer 
+const int   nbMes  = 2;               // quantité de mesures à effectuer PM25 et PM10
+const char *device_name = "sensor9";  // nom du device a documenter
+const char *host = "http://jsonplaceholder.typicode.com/";
 
 float temps_ref_envoi = 0;
 float temps_ref_mesure = 0;
@@ -43,29 +45,13 @@ int rxPin = 14;
 int txPin = 12;
 SdsDustSensor sds(rxPin, txPin);
 String readString;
-/////////////////////////////////////////////////////////////
-const char *ssid = "Philippe's iPhone";
-const char *password = "thomyphi";
-////////////////////////////////////////////////////////////
-const char *ssid1 = "";
-const char *password1 = "";
-/////////////////////////////////////////////////////////////
-const char *ssid2 = "";
-const char *password2 = "";
-////////////////////////////////////////////////////////////
-const char *ssid3 = "";
-const char *password3 = "";
-///////////////////////////////////////////////////////////////////
-const char *device_name = "sensor9"; // Set your device name !!!!!
-///////////////////////////////////////////////////////////////////
 
-const char *host = "http://jsonplaceholder.typicode.com/";
 int sensorVal1;
 int sensorVal2;
 int sensorVal3;
 int i;
+
 WiFiServer server(80);
-ESP8266WiFiMulti wifiMulti;
 
 void setup() {              //SETUP Start
   Serial.begin(115200);     // Start the Serial communication to send messages to the computer
@@ -77,29 +63,14 @@ void setup() {              //SETUP Start
   strip.begin();           // INITIALIZE NeoPixel strip object (REQUIRED)
   strip.show();            // Turn OFF all pixels ASAP
   strip.setBrightness(50); // Set BRIGHTNESS to about 1/5 (max = 255)
-
+  StripAffiche("démarrage");
+  
   // Serveur WiFi
-  //WiFi.mode(WIFI_AP_STA);  // mode mixte server et client
-  //WiFiManager wifiManager; // WiFi option non fixe
-  ////  wifiManager.resetSettings(); //à décommenter pour ne pas gerder en mémoire les anciens identifiants
-  //wifiManager.autoConnect("DIAMS plateforme R24");
-  //Serial.println(""); Serial.print("IP address: "); Serial.println(WiFi.localIP());
-
-  wifiMulti.addAP(ssid, password); // add Wi-Fi networks you want to connect to
-  wifiMulti.addAP(ssid1, password1);
-  wifiMulti.addAP(ssid2, password2);
-  wifiMulti.addAP(ssid3, password3);
-  Serial.println("Connecting ...");
-  while (wifiMulti.run() != WL_CONNECTED) { // Wait for the Wi-Fi to connect: scan for Wi-Fi networks, and connect to the strongest of the networks above
-    Serial.print(++i);
-    Serial.print(' ');
-    delay(500);
-    strip.setPixelColor(0, strip.Color(255, 165, 0));
-    strip.show();
-    delay(500);
-    strip.setPixelColor(0, strip.Color(30, 144, 255));
-    strip.show();
-  }
+  WiFi.mode(WIFI_AP_STA);  // mode mixte server et client
+  WiFiManager wifiManager; // WiFi option non fixe
+  //  wifiManager.resetSettings(); //à décommenter pour ne pas gerder en mémoire les anciens identifiants
+  wifiManager.autoConnect("AI for GOOD");
+  Serial.println(""); Serial.print("IP address: "); Serial.println(WiFi.localIP());
 
   Serial.println('\n');
   Serial.print("Connected to ");
@@ -119,18 +90,19 @@ void setup() {              //SETUP Start
   MDNS.addService("http", "tcp", 80);
   server.begin();
   sds.begin();
+  StripAffiche("démarré");
 }
 
-void loop() {                     // Loop start
+void loop() {
   WiFiClient client = server.available();
 
   // réalisation des mesures intermédiaires
   if (( (millis() - temps_ref_mesure) >= float(TEMPS_CYCLE)/float(NB_MESURE) ) and (NB_MESURE > 1)) {
       temps_ref_mesure = millis();
+      StripAffiche("début mesure");
       LireCapteur();
       CalculMesure();
-      //Serial.println("mesure");  
-      //Serial.println(mes[0].valeur, mes[0].ecartType);
+      StripAffiche("fin mesure");
   }
 
   // boucle principale de mesure
@@ -145,11 +117,11 @@ void loop() {                     // Loop start
       InitMesure();
   }
 
+  // traitement du client
   if (!client) {
     return;
   } 
   else {
-    
     // récupération sur le client du ressenti
     MDNS.update();
     delay(500);
