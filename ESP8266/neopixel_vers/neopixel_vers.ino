@@ -1,101 +1,110 @@
-
+// Node MCU 1.0(ESP-12E Module), 80 MHz, Flash, 4M (3M SPIFFS), v2 Lower Memory, Disabled, None, Only Sketch, 115200 sur COM4, programmateur : Arduino as ISP
 
 #include <ESP8266WiFi.h>
 #include <WiFiClientSecure.h>
 #include <ESP8266WiFiMulti.h>
 #include <WiFiManager.h>
-#include <ESP8266mDNS.h>
 #include "SdsDustSensor.h"
 #include <ArduinoJson.h>
 #include <ESP8266HTTPClient.h>
 #include <Adafruit_NeoPixel.h>
+#include <FS.h>
 
-#define LED_PIN D8
-#define LED_COUNT 1
+#define LED_PIN     D8         // affichage de l'état des mesures
+#define RXPIN       14         // laison capteur
+#define TXPIN       12         // laison capteur
 
-#define TEMPS_CYCLE 15000  // période d envoi des mesures en millisecondes
-#define NB_MESURE   5      // nombre de mesure élémentaires dans le temps de cycle 
-#define VALEUR_MIN_PM 0.0  // limite mini autorisee pour les PM
-#define VALEUR_MAX_PM 10000.0   // limite maxi autorisee pour les PM
+#define LED_COUNT       1         // nombre de LED dans le ruban
+#define TEMPS_CYCLE     15000     // période d envoi des mesures en millisecondes
+#define NB_MESURE       5         // nombre de mesure élémentaires dans le temps de cycle 
+#define VALEUR_MIN_PM   0.0       // limite mini autorisee pour les PM
+#define VALEUR_MAX_PM   1000.0    // limite maxi autorisee pour les PM
+#define SEUIL_BON_PM    10.0      // seuil affichage pour les PM
+#define SEUIL_MOYEN_PM  20.0      // seuil affichage pour les PM
 
-const int   nbMes  = 2;               // quantité de mesures à effectuer PM25 et PM10
-const char *device_name = "sensor9";  // nom du device a documenter
-const char *host = "http://jsonplaceholder.typicode.com/";
+const int     NB_MES  = 2;               // quantité de mesures à effectuer (ici 2 :PM25 et PM10)
+const char    *DEVICE_NAME = "sensor9";  // nom du device a documenter
+const String  SERVEUR_AI4GOOD = "http://simple-ai4good-sensors-api.herokuapp.com/data";
+const int     ROUGE[3]  = {127, 0, 0};
+const int     ORANGE[3] = {255, 165, 0};
+const int     BLEU[3]   = {30, 144, 255};
+const int     VERT[3]   = {0, 128, 0};
+const int     LUMINOSITE_FORTE  = 250;     // maxi 255
+const int     LUMINOSITE_FAIBLE = 50;
+const char    *AUTO_CONNECT = "AI for GOOD";
 
-float temps_ref_envoi = 0;
-float temps_ref_mesure = 0;
-double pm[nbMes];
+float   temps_ref_envoi   = 0;
+float   temps_ref_mesure  = 0;
+double  pm[NB_MES];
+int     sensorVal1;
+int     sensorVal2;
+int     sensorVal3;
 
 struct Mesure {
-  String nom;
-  int nombre;
-  int nombreOk;
-  double valeur;
-  float ecartType;
-  float date;
-  float valeurMin;
-  float valeurMax;
-  float tauxErreur;
+  String  nom;        // nom de la mesure ex. PM10
+  int     nombre;     // nombre de mesures effectuées dans le temps de cycle
+  int     nombreOk;   // nombre de mesures correctes dans le temps de cycle
+  double  valeur;     // valeur de la mesure calculée dans le temps de cycle
+  float   ecartType;  // écart-type des valeurs bonnes
+  float   date;       // date de la mesure
+  float   valeurMin;  // valeur min autorisée pour la mesure
+  float   valeurMax;  // valeur max autorisée pour la mesure
+  float   tauxErreur; // ratio nombre de mesures correctes / nombre de mesures effectuées
 };
-Mesure mes[nbMes];
-
+// initialisation des objets
+Mesure mes[NB_MES];
 Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);
+SdsDustSensor sds(RXPIN, TXPIN);
+ESP8266WebServer server(80);         // ecoute sur le port 80
 
-int rxPin = 14;
-int txPin = 12;
-SdsDustSensor sds(rxPin, txPin);
-String readString;
+void setup() {         
 
-int sensorVal1;
-int sensorVal2;
-int sensorVal3;
-int i;
-
-WiFiServer server(80);
-
-void setup() {              //SETUP Start
+  // liaison série
   Serial.begin(115200);     // Start the Serial communication to send messages to the computer
   delay(10);
   Serial.println('\n');
 
-  CreerMesure();           // Création pm10 et pm2_5
-
-  strip.begin();           // INITIALIZE NeoPixel strip object (REQUIRED)
-  strip.show();            // Turn OFF all pixels ASAP
-  strip.setBrightness(50); // Set BRIGHTNESS to about 1/5 (max = 255)
+  // initialisation données et affichage
+  CreerMesure();              // Création pm10 et pm2_5
+  strip.begin();              // INITIALIZE NeoPixel strip object (REQUIRED)
+  strip.show();               // Turn OFF all pixels
   StripAffiche("démarrage");
-  
+
+  // Serveur de fichier
+  if (!SPIFFS.begin()){
+    Serial.println("SPIFFS Mount failed");
+  } else {
+    Serial.println("SPIFFS Mount succesfull");
+  }
+
   // Serveur WiFi
   WiFi.mode(WIFI_AP_STA);  // mode mixte server et client
   WiFiManager wifiManager; // WiFi option non fixe
   //  wifiManager.resetSettings(); //à décommenter pour ne pas gerder en mémoire les anciens identifiants
-  wifiManager.autoConnect("AI for GOOD");
+  wifiManager.autoConnect(AUTO_CONNECT);
   Serial.println(""); Serial.print("IP address: "); Serial.println(WiFi.localIP());
+  Serial.print("Connected to ");  Serial.println(WiFi.SSID()); 
+  Serial.print("IP address:\t");  Serial.println(WiFi.localIP());
 
-  Serial.println('\n');
-  Serial.print("Connected to ");
-  Serial.println(WiFi.SSID());     // Tell us what network we're connected to
-  Serial.print("IP address:\t");
-  Serial.println(WiFi.localIP());  // Send the IP address of the ESP8266 to the computer
+  // serveur web
+  server.on("/mesures.json", SendMesure);
+  server.on("/BIEN",    []() {sensorVal1 = 1; sensorVal2 = 0; sensorVal3 = 0; Serial.println("BIEN")   ; server.send(200, "text/plain", "/index.html");});
+  server.on("/NORMAL",  []() {sensorVal1 = 0; sensorVal2 = 1; sensorVal3 = 0; Serial.println("NORMAL") ; server.send(200, "text/plain", "/index.html");});
+  server.on("/PASBIEN", []() {sensorVal1 = 0; sensorVal2 = 0; sensorVal3 = 1; Serial.println("PASBIEN"); server.send(200, "text/plain", "/index.html");});
+  server.serveStatic("/", SPIFFS, "/index.html");
+  server.serveStatic("/index.html", SPIFFS, "/index.html");
+  server.begin();
 
-  if (!MDNS.begin("sensor")) {     // Start the mDNS responder for esp8266.local
-    Serial.println("Error setting up MDNS responder!");
-  }
-  Serial.println("mDNS responder started");
-
+  // capteur PM
   Serial.println(sds.queryFirmwareVersion().toString());       // prints firmware version
   Serial.println(sds.setActiveReportingMode().toString());     // ensures sensor is in 'active' reporting mode
   Serial.println(sds.setContinuousWorkingPeriod().toString()); // ensures sensor has continuous working period - default but not recommended
-
-  MDNS.addService("http", "tcp", 80);
-  server.begin();
   sds.begin();
+  
   StripAffiche("démarré");
 }
 
 void loop() {
-  WiFiClient client = server.available();
-
   // réalisation des mesures intermédiaires
   if (( (millis() - temps_ref_mesure) >= float(TEMPS_CYCLE)/float(NB_MESURE) ) and (NB_MESURE > 1)) {
       temps_ref_mesure = millis();
@@ -104,49 +113,22 @@ void loop() {
       CalculMesure();
       StripAffiche("fin mesure");
   }
-
   // boucle principale de mesure
   if ( (millis() - temps_ref_envoi) >= float(TEMPS_CYCLE) ){
       temps_ref_envoi = millis();
       if (NB_MESURE <= 1) {
-          LireCapteur(); 
-          CalculMesure();
+        StripAffiche("début mesure");
+        LireCapteur();
+        CalculMesure();
+        StripAffiche("fin mesure");
       }
       GenereMesure();
-      TraitementMesure(sensorVal1, sensorVal2, sensorVal3);  //envoi des données et affichage LED
+      TraitementMesure();  //envoi des données et affichage LED
       InitMesure();
+      InitRessenti();
   }
-
-  // traitement du client
-  if (!client) {
-    return;
-  } 
-  else {
-    // récupération sur le client du ressenti
-    MDNS.update();
-    delay(500);
-    String req = client.readStringUntil('\r');  // Read the first line of HTTP request
-    // First line of HTTP request looks like "GET /path HTTP/1.1"
-    // Retrieve the "/path" part by finding the spaces
-    int addr_start = req.indexOf(' ');
-    int addr_end = req.indexOf(' ', addr_start + 1);
-    IPAddress ip = WiFi.localIP();
-    if (addr_start == -1 || addr_end == -1) {
-      Serial.print("Invalid request: ");
-      Serial.println(req);
-      return;
-    }
-    req = req.substring(addr_start + 1, addr_end);
-    Serial.print("Request: ");
-    Serial.println(req);
-    TraitementRessenti(req);
-
-    // rafraichissement des valeurs de PM sur le client
-    String page= "";
-    GenerationPage(page);
-    client.print(page);
-    //  delay(100);
-    client.flush();
-  }
+  // traitement des requetes des pages web
+  WiFiClient client;
+  server.handleClient();
 }
 

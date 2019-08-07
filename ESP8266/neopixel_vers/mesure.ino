@@ -1,7 +1,14 @@
 
+void SendMesure(){      // construire le JSON pour la page web
+  String valeurInst = "{\"PM25\" : " + String(pm[0]) + ", \"PM10\" : " + String(pm[1]) + "}";
+  Serial.print("json mesure: "); Serial.println(valeurInst);
+  server.send(200, "application/json", valeurInst);
+  Serial.println("envoi mesures");
+}
+
 void InitMesure(){
   int nMes;
-  for (nMes = 0; nMes < nbMes; ++nMes) {
+  for (nMes = 0; nMes < NB_MES; ++nMes) {
     mes[nMes].nombre = 0;
     mes[nMes].nombreOk = 0;
     mes[nMes].valeur = 0;
@@ -11,6 +18,12 @@ void InitMesure(){
   }
 }
 
+void InitRessenti(){
+  sensorVal1 = 0;
+  sensorVal2 = 0;
+  sensorVal3 = 0;
+}
+
 void CreerMesure(){
   InitMesure();
   
@@ -18,7 +31,7 @@ void CreerMesure(){
   mes[0].valeurMin = VALEUR_MIN_PM;
   mes[0].valeurMax = VALEUR_MAX_PM;
 
-  mes[1].nom = "PM101";
+  mes[1].nom = "PM10";
   mes[1].valeurMin = VALEUR_MIN_PM;
   mes[1].valeurMax = VALEUR_MAX_PM;
 }
@@ -26,7 +39,7 @@ void CreerMesure(){
 void CalculMesure(){
   //Serial.println(nb);
   //Serial.println(pm[0]);
-  for (int nMes = 0; nMes < nbMes; ++nMes) {
+  for (int nMes = 0; nMes < NB_MES; ++nMes) {
     mes[nMes].nombre += 1;
     mes[nMes].date += millis();
     if ((pm[nMes] > mes[nMes].valeurMin) and (pm[nMes] < mes[nMes].valeurMax)) {
@@ -39,7 +52,7 @@ void CalculMesure(){
 
 void GenereMesure(){
   float variance;
-  for (int nMes = 0; nMes < nbMes; ++nMes) {
+  for (int nMes = 0; nMes < NB_MES; ++nMes) {
     mes[nMes].date /= float(mes[nMes].nombre);
     if (mes[nMes].nombreOk > 0) {
         mes[nMes].valeur /= float(mes[nMes].nombreOk);

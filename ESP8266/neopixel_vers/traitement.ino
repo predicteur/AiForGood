@@ -1,37 +1,35 @@
 
 void StripAffiche(String modeStrip){
-  if        (modeStrip == "démarrage") {          // orange
-      strip.setPixelColor(0, strip.Color(255, 165, 0));
-  } else if (modeStrip == "démarré") {            // bleu
-      strip.setPixelColor(0, strip.Color(30, 144, 255));
-  } else if (modeStrip == "wifi non connecté") {  // clignotement orange bleu
-      delay(500);
-      strip.setPixelColor(0, strip.Color(255, 165, 0));
+  if        (modeStrip == "démarrage") {     
+      strip.setBrightness(LUMINOSITE_FAIBLE);
+      strip.setPixelColor(0, ORANGE[0], ORANGE[1], ORANGE[2]);
+  } else if (modeStrip == "démarré") {       
+      strip.setPixelColor(0, BLEU[0], BLEU[1], BLEU[2]);
+  } else if (modeStrip == "wifi non connecté") {
+      delay(500); strip.setPixelColor(0, ORANGE[0], ORANGE[1], ORANGE[2]);
       strip.show();
-      delay(500);
-      strip.setPixelColor(0, strip.Color(30, 144, 255));
-  } else if (modeStrip == "correct") {            // vert
-      strip.setPixelColor(0, strip.Color(0, 128, 0));
-  } else if (modeStrip == "moyen") {              // orange
-      strip.setPixelColor(0, strip.Color(255, 165, 0));
-  } else if (modeStrip == "mauvais") {            // rouge
-      strip.setPixelColor(0, strip.Color(127, 0, 0));
-  } else if (modeStrip == "début mesure") {       // luminosité forte
-      strip.setBrightness(250);                   //  (max = 255)
-  } else if (modeStrip == "fin mesure") {         // luminosité faible
-      strip.setBrightness(50);
+      delay(500); strip.setPixelColor(0, BLEU[0], BLEU[1], BLEU[2]);
+  } else if (modeStrip == "correct") {     
+      strip.setPixelColor(0, VERT[0], VERT[1], VERT[2]);
+  } else if (modeStrip == "moyen") {     
+      strip.setPixelColor(0, ORANGE[0], ORANGE[1], ORANGE[2]);
+  } else if (modeStrip == "mauvais") {         
+      strip.setPixelColor(0, ROUGE[0], ROUGE[1], ROUGE[2]);
+  } else if (modeStrip == "début mesure") { 
+      strip.setBrightness(LUMINOSITE_FORTE);
+  } else if (modeStrip == "fin mesure") {  
+      strip.setBrightness(LUMINOSITE_FAIBLE);
   }
   strip.show();
 }
 
-void TraitementMesure(int a, int b, int c){
-  Serial.print("Nombre de mesures : "); Serial.print(mes[0].nombre);
+void TraitementMesure(){
+  Serial.print("Nombre de mesures : "); Serial.print(mes[0].nombre); Serial.print(" Taux d erreur : "); Serial.println(mes[0].tauxErreur);
   Serial.print(" Valeur : "); Serial.print(mes[0].valeur); Serial.print(" Ecart-type : "); Serial.print(mes[0].ecartType);
-  Serial.print(" Taux d erreur : "); Serial.println(mes[0].tauxErreur);
+  Serial.print(" Ressenti : "); Serial.print(sensorVal1); Serial.print(sensorVal2); Serial.println(sensorVal3);
   if ((mes[0].nombreOk > 0) and (mes[1].nombreOk > 0)) {
-      sendData(mes[0].valeur, mes[1].valeur, a, b, c);
-      updateLed(mes[0].valeur, mes[1].valeur);
-      //Serial.println("mesure envoyée");
+      sendData();
+      updateLed();
   } 
   else {
       Serial.println("mesure non envoyée");
@@ -46,115 +44,44 @@ void LireCapteur(){
   }
 }
 
-void sendData(double z, double k, int a, int b, int c) {
+void sendData() {
+  
+  // Génération du json
   StaticJsonBuffer<200> jsonBuffer;
   JsonObject &root = jsonBuffer.createObject();
-  root["device"] = device_name;
-  root["PM2_5"] = String(z, 2);
-  root["PM10"] = String(k, 2);
-  root["mixed_feeling"] = String(b, 2);
-  root["negative_feeling"] = String(c, 2);
-  root["positive_feeling"] = String(a, 2);
-
+  root["device"]            = DEVICE_NAME;
+  root["PM2_5"]             = String(mes[0].valeur, 2);
+  root["PM10"]              = String(mes[1].valeur, 2);
+//  root["ecart-type_PM25"]   = String(mes[0].ecartType, 2);
+//  root["ecart-type_PM10"]   = String(mes[1].ecartType, 2);
+//  root["taux-erreur_PM25"]   = String(mes[0].tauxErreur, 2);
+//  root["taux-erreur_PM10"]   = String(mes[1].tauxErreur, 2);
+  root["positive_feeling"]  = String(sensorVal1, 2);
+  root["mixed_feeling"]     = String(sensorVal2, 2);
+  root["negative_feeling"]  = String(sensorVal3, 2);
   root.printTo(Serial);
   char JSONmessageBuffer[300];
   root.prettyPrintTo(JSONmessageBuffer, sizeof(JSONmessageBuffer));
   Serial.println(JSONmessageBuffer);
 
-  if (WiFi.status() == WL_CONNECTED) {                                  //Check WiFi connection status
-    HTTPClient http;                                                    //Declare object of class HTTPClient
-    http.begin("http://simple-ai4good-sensors-api.herokuapp.com/data"); //Specify request destination
+  // Envoi du json
+  if (WiFi.status() == WL_CONNECTED) {                                  
+    HTTPClient http;
+    http.begin(SERVEUR_AI4GOOD);
     http.addHeader("Content-Type", "application/json");                 //Specify content-type header
     int httpCode = http.POST(JSONmessageBuffer);                        //Send the request
     String payload = http.getString();                                  //Get the response payload
-    Serial.println(httpCode);                                           //Print HTTP return code
-    Serial.println(payload);                                            //Print request response payload
+    Serial.println(httpCode); Serial.println(payload);                  //Print HTTP return code and request response payload
     http.end();                                                         //Close connection
-  }
-  else {
+  } else {
     StripAffiche("wifi non connecté");
   }
 }
 
-void updateLed(double a, double b) {        //Function UpdateOled Pm value
-  int myInt = (int)a;
-  switch (myInt) {
-    case 0 ... 10:
-      StripAffiche("correct");
-      break;
-    case 11 ... 20:
-      StripAffiche("moyen");
-      break;
-    case 21 ... 1000:
-      StripAffiche("mauvais");
-      break;
+void updateLed() { 
+  if        (mes[0].valeur < SEUIL_BON_PM)    { StripAffiche("correct");
+  } else if (mes[0].valeur < SEUIL_MOYEN_PM)  { StripAffiche("moyen");
+  } else                                      { StripAffiche("mauvais");
   }
 }
 
-void  TraitementRessenti(String requete) {
-    if (requete == "/BIEN") {
-      sensorVal1 = 1;
-      sensorVal2 = 0;
-      sensorVal3 = 0;
-    }
-    else if (requete == "/NORMAL") {
-      sensorVal1 = 0;
-      sensorVal2 = 1;
-      sensorVal3 = 0;
-    }
-    else if (requete == "/PASBIEN") {
-      sensorVal1 = 0;
-      sensorVal2 = 0;
-      sensorVal3 = 1;
-    }
-}
-
-void GenerationPage(String s) {
-    s = "<html lang='fr'><head><meta http-equiv='refresh' content='60' name='viewport' content='width=device-width, initial-scale=1'/>";
-
-    s += "<link rel='stylesheet' href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css'>";
-    s += "<script src='https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js'></script>";
-    s += "<script src='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js'></script>";
-
-    s += "<body style='background:url('https://zupimages.net/up/19/29/jblq.jpg') no-repeat center/100% 100%;'>";
-    s += "<div class='container container-fluid px-5' style='min-height: 100%;'>";
-    s += "<div class='row'>";
-    s += "<div class='col-md-12'>";
-    s += "<h3 class='text-center'>";
-    s += "AlabintheAIR";
-    s += "</h3>";
-    s += "<br /><br />";
-    s += "<table class='table text-center'>";
-    s += "<tbody>";
-    s += "<tr>";
-    s += "<td>PM2.5</td>";
-    s += "<td>";
-    s += pm[0];
-    s += "</td>";
-    s += "</tr>";
-    s += "<tr class='table-active'>";
-    s += "<td>PM10</td>";
-    s += "<td>";
-    s += pm[1];
-    s += "</td>";
-    s += "</tr>";
-    s += "</tbody>";
-    s += "<th />";
-    s += "</table>";
-    s += "<h3 class='text-center'>My FEELING</h3>";
-    s += "<br /><br />";
-    s += "<div class='row'>";
-    s += "<div class='col-md-12'>";
-    s += "<a class='btn btn-success btn-lg btn-block' style='padding-top:3%;padding-bottom:3%;' href=\"BIEN\">FRESH AIR</a>";
-    s += "<br /><br />";
-    s += "<a class='btn btn-primary btn-lg btn-block' style='padding-top:3%;padding-bottom:3%;' href=\"NORMAL\">COMMON AIR</a>";
-    s += "<br /><br />";
-    s += "<a class='btn btn-danger btn-lg btn-block' style='padding-top:3%;padding-bottom:3%;' href=\"PASBIEN\">STALE AIR</a>";
-    s += "<br />";
-    s += "</div>";
-    s += "</div>";
-    s += "</div>";
-    s += "</div>";
-    s += "</div>";
-    s += "</body> </html> \n";
-}

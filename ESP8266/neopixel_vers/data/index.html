@@ -1,0 +1,114 @@
+﻿<html lang='fr'>
+<head>
+    <meta http-equiv='refresh' name='viewport' content='width=device-width'/>
+    <link rel='stylesheet' href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css'>
+    <script src='https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js'></script>
+    <script src='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js'></script>
+</head>
+<body style='background:url('https://zupimages.net/up/19/29/jblq.jpg') no-repeat center/100% 100%;'>
+    <div class='container container-fluid px-5' style='min-height: 100%;'>
+        <div class='row'>
+            <div class='col-md-12'>
+                <h3 class='text-center'>AlabintheAIR</h3>
+                <br /><br />
+                <table class='table text-center'>
+                    <tbody>
+                        <tr>
+                            <td>PM2.5  </td>
+                            <td id="pm25">10</td>
+                        </tr>
+                        <tr class='table-active'>
+                            <td>PM10   </td>
+                            <td id="pm10">20</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <h3 class='text-center'>My FEELING</h3>
+                <br /><br />
+                <div class='row'>
+                    <div class='col-md-12'>
+                        <a id="BIEN" class='btn btn-success btn-lg btn-block' style='padding-top:3%;padding-bottom:3%;' href="">FRESH AIR</a>
+                        <br /><br />
+                        <a id="NORMAL" class='btn btn-primary btn-lg btn-block' style='padding-top:3%;padding-bottom:3%;' href="">COMMON AIR</a>
+                        <br /><br />
+                        <a id="PASBIEN" class='btn btn-danger btn-lg btn-block' style='padding-top:3%;padding-bottom:3%;' href="">STALE AIR</a>
+                        <br />
+                    </div>
+                </div>
+                <!--<h3 class='text-center'>Coordonnées GPS</h3>
+                <button onclick="majGps()">coordonnées : </button>
+                <br /><br />
+                <p id="Test"></p>-->                
+            </div>
+        </div>
+    </div>
+    <script>
+        var bien = document.getElementById("BIEN");
+        var normal = document.getElementById("NORMAL");
+        var pasbien = document.getElementById("PASBIEN");
+        var pm25 = document.getElementById("pm25");
+        var pm10 = document.getElementById("pm10");
+        //var x = document.getElementById("Test");
+
+        function updateData(lien="/mesures.json") {
+            var xhr = new XMLHttpRequest();
+            console.log(lien);
+            xhr.open('GET', lien, false);       // false : ESP s'emmele les crayons en asynchrone
+            xhr.send(null);
+            if ((xhr.status === 200 || xhr.status === 0)&(lien === "/mesures.json")) {
+                    var response = JSON.parse(xhr.responseText);
+                    console.log("lecture fichier json"); console.log(response);
+                    pm25.textContent = response.PM25;
+                    pm10.textContent = response.PM10;
+            }
+        }
+        bien.addEventListener('click', function() { console.log("click sur Bien"); updateData("/BIEN");});
+        normal.addEventListener('click', function() { console.log("click sur normal"); updateData("/NORMAL");});
+        pasbien.addEventListener('click', function() { console.log("click sur pasbien");updateData("/PASBIEN");});
+        updateData("/mesures.json");
+        window.setInterval(updateData, 5000);
+
+        /* Check for Geolocation API permissions
+        navigator.permissions.query({name:'geolocation'}).then(function(p) {
+          updatePermission('geolocation', p.state);
+          p.onchange = function() {
+            updatePermission('geolocation', this.state);
+          };
+        });
+
+        function majGps() {
+            //Check if Geolocation is supported 
+            if (navigator.geolocation) {
+            //the watchposition() method show the position of the user and update it while is moving
+                navigator.geolocation.watchPosition(affichePosition, afficheErreur);
+            } else { 
+            //If not, display a message to the user
+                x.innerHTML = "Geolocation non supportée.";
+            }
+        }
+        //The showPosition() function outputs the Latitude and Longitude
+        function affichePosition(position) {
+            x.innerHTML = "Latitude: " + position.coords.latitude + 
+            "<br>Longitude: " + position.coords.longitude;
+        }
+        function afficheErreur(error) {
+            switch(error.code) {
+                case error.PERMISSION_DENIED:
+                    x.innerHTML = "User denied the request for Geolocation."
+                    break;
+                case error.POSITION_UNAVAILABLE:
+                    x.innerHTML = "Location information is unavailable.";
+                    break;
+                case error.TIMEOUT:
+                    x.innerHTML = "The request to get user location timed out."
+                    break;
+                case error.UNKNOWN_ERROR:
+                    x.innerHTML = "An unknown error occurred."
+                    break;
+            }
+        }*/
+    </script>
+</body>
+</html>
+
+
