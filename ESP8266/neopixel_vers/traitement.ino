@@ -51,7 +51,7 @@ void sendData() {
   JsonObject &root = jsonBuffer.createObject();
   root["device"]            = DEVICE_NAME;
   root["PM2_5"]             = String(mes[0].valeur, 2);
-  root["PM10"]              = String(mes[1].valeur, 2);
+          root["PM10"]              = String(mes[1].valeur, 2);
 //  root["ecart-type_PM25"]   = String(mes[0].ecartType, 2);
 //  root["ecart-type_PM10"]   = String(mes[1].ecartType, 2);
 //  root["taux-erreur_PM25"]   = String(mes[0].tauxErreur, 2);
