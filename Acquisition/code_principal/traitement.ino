@@ -181,9 +181,9 @@
     ficMes.close();
     delay(50);
     ficMes = SPIFFS.open(FIC_BUF, "w");
-    //total = total + "\n" + JSONmessage;
-    total = total + JSONmessage;
-    ficMes.println(total);
+    total = total + "\n" + JSONmessage;
+    //total = total + JSONmessage;
+    ficMes.print(total);
     ficMes.close();
     Serial.println("total stocké : ");
     Serial.println(total);
@@ -210,7 +210,7 @@
         unsigned long dateDebutReponseInt = millis();
         int httpCode = EnvoiJSON();
         if (httpCode != 201) {
-          mesureNonReprise += (JSONmessage + "\n");
+          mesureNonReprise += ("\n" + JSONmessage);
         } else {
           unsigned long dateReponseInt = millis();
           RecalageDate((dateReponseInt + dateDebutReponseInt)/2);         
@@ -218,7 +218,7 @@
       }
     }
     ficMes = SPIFFS.open(FIC_BUF, "w");
-    ficMes.println(mesureNonReprise);
+    ficMes.print(mesureNonReprise);
     ficMes.close();
     Serial.println("total stocké : ");
     Serial.println(mesureNonReprise);

@@ -133,7 +133,6 @@
         GenereMesure();                                     // calcul de la mesure moyenne dans mes.xxx
         if (MesureOk()) {
             PrMesure();                                     
-            UpdateLed();                                    // affichge du niveau sur les LED
 #ifdef RESEAUWIFI
             EnvoiWifi();                                    // envoi sur le serveur (et stockage fichier si KO)
 #else
@@ -141,14 +140,15 @@
 #endif
         } 
         else {
-            StripAffiche("mesure non envoyée");
+            StripAffiche("mesure non envoyée"); delay(2000);
         }
-        InitMesure();
-        InitRessenti();
         niveauBatterieBas = TestBatterieBasse();            // test à mettre en place (mesure)
 #ifdef COMPRESSION
         nbMesureGroupe ++;
 #endif
+        UpdateLed();                                        // affichge du niveau sur les LED
+        InitMesure();
+        InitRessenti();
     }
 #ifdef COMPRESSION
     // boucle d'envoi des données groupées

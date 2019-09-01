@@ -43,7 +43,7 @@
     #define TXPIN           12      // laison capteur
   #endif
     #define LED_COUNT       1       // nombre de LED dans le ruban
-    #define MEMIDENTIFIANT  1       // 0 : pas de mémorisation des accès WiFi, 1 : mémorisation  
+    #define MEMIDENTIFIANT  0       // 0 : pas de mémorisation des accès WiFi, 1 : mémorisation  
     #define DEBUG           2       // affichage sur liaison série de 0 : tout, 1 : erreur, warning, 2 : debug
     const char    *DEVICE_NAME = "sensor9";   // nom du device a documenter
 
