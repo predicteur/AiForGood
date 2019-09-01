@@ -1,9 +1,9 @@
 # Intégration et gestion locale de données de mesure (issues de capteurs)
 
 ## Objectif
-Gestion et restitution locale de mesures issues de capteurs
-Mise à disposition d'une application sur serveur des données
-Utilisation fixe ou mobile
+- Gestion et restitution locale de mesures issues de capteurs
+- Mise à disposition d'une application sur serveur des données
+- Utilisation fixe ou mobile
 
 ## Fonctions
 Les principales fonctions intégrées sont les suivantes :
