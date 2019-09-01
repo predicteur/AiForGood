@@ -45,7 +45,7 @@
   void GenereMesure(){
     float variance;
     for (int nMes = 0; nMes < NB_MES; ++nMes) {
-      mes[nMes].date /= float(mes[nMes].nombre);
+      mes[nMes].date = mes[nMes].date / mes[nMes].nombre;
       if (mes[nMes].nombreOk > 0) {
           mes[nMes].valeur /= float(mes[nMes].nombreOk);
           variance = (mes[nMes].ecartType / float(mes[nMes].nombreOk) - pow(mes[nMes].valeur, 2.0));

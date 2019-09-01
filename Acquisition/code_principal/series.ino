@@ -1,6 +1,6 @@
 #ifdef COMPRESSION
 //-----------------------------------------------------------------------------------------------------------------------------
-  void prSerie(float serie[], int len, String nom) {
+  void PrSerie(float serie[], int len, String nom) {
     Serial.print(nom); Serial.print(" :[ ");
     for (int i=0; i<len; i++){
       Serial.print(serie[i]);
@@ -9,7 +9,7 @@
     Serial.println("] ");
   }
 //-----------------------------------------------------------------------------------------------------------------------------
-  void prCoef(struct CoefComp *coef){
+  void PrCoef(struct CoefComp *coef){
     Serial.print("a0 : ");Serial.print(coef->a0); Serial.print(" b0 : ");Serial.println(coef->b0);
     Serial.print("a1 : ");Serial.print(coef->a1[0]);Serial.println(coef->a1[1]);
     Serial.print("b1 : ");Serial.print(coef->b1[0]);Serial.println(coef->b1[1]);

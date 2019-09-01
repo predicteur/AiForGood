@@ -43,7 +43,7 @@
       for (int i=0; i<len; i++){
           sserie[i] = (pow(min(maxi, max(mini, serie[i])), c) - minic)/(maxic - minic);
       }
-      prSerie(sserie,TAILLE_ECH, "sserie");
+      PrSerie(sserie,TAILLE_ECH, "sserie");
   }
 //-----------------------------------------------------------------------------------------------------------------------------
   void denormalisation(float serie[], float mini, float maxi, float c, int len){
@@ -152,7 +152,7 @@
       float y1[TAILLE_ECH], ecartType;
       compression();
       // optimisation
-      prSerie(y0n, TAILLE_ECH, "y0n apres compression");
+      PrSerie(y0n, TAILLE_ECH, "y0n apres compression");
       codage();
       decodage();        
       optimisation();
@@ -160,7 +160,7 @@
       codage; 
       decodage();
       decompression();
-      prSerie(y0fon, TAILLE_ECH, "y0fon apres compression");
+      PrSerie(y0fon, TAILLE_ECH, "y0fon apres compression");
       diff(y0init, y0fon, y1, TAILLE_ECH);
       ecartType = et(y1, TAILLE_ECH);
       // codage et envoi du payload

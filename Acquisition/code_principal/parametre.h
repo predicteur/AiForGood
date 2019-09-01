@@ -1,19 +1,18 @@
 #ifndef PARAMETRE
   #define PARAMETRE
-
-//--------------------------------------------- configuration des plateformes 
+//--------------------------------------------- configuration des plateformes --------------------------------
   #ifdef SIGFOX_SPI //test du board sigfox
     #define BOARDSIGFOX
     #define COMPRESSION
-    #define BOARD "sigfox"
-    #define RESEAU "LPWAN"
+    //#define BOARD "sigfox"
+    //#define RESEAU "LPWAN"
   #else 
     #define RESEAUWIFI
-    #define BOARD "autre"
-    #define RESEAU "WIFI"    
+    //#define BOARD "autre"
+    //#define RESEAU "WIFI"    
   #endif
 
-//--------------------------------------------- configuration des librairies 
+//--------------------------------------------- configuration des librairies -------------------------------- 
   #ifdef BOARDSIGFOX
     #include <SigFox.h>
     #include <ArduinoLowPower.h>
@@ -28,50 +27,40 @@
     #include <SdsDustSensor.h>
     #include <ArduinoJson.h>
     #include <Adafruit_NeoPixel.h>
+  
 
+/*
+ ****************************************************************************************************************
+             Paramètres modifiables sans avoir à modifier le code
+ ****************************************************************************************************************
+*/
 //--------------------------------------------- configuration matérielle / logicielle
   #ifdef BOARDSIGFOX
     #define LED_PIN         8       // affichage de l'état des mesures
   #else
-    #define LED_PIN         D8      // affichage de l'état des mesures
+    #define LED_PIN         D1      // affichage de l'état des mesures (D8 par défaut, D1 sur ESP de test Philippe)
     #define RXPIN           14      // laison capteur
     #define TXPIN           12      // laison capteur
   #endif
     #define LED_COUNT       1       // nombre de LED dans le ruban
-    #define MEMIDENTIFIANT  1       // 0 : pas de mémorisation des accès WiFi, 1 : mémorisation   
+    #define MEMIDENTIFIANT  1       // 0 : pas de mémorisation des accès WiFi, 1 : mémorisation  
+    #define DEBUG           2       // affichage sur liaison série de 0 : tout, 1 : erreur, warning, 2 : debug
+    const char    *DEVICE_NAME = "sensor9";   // nom du device a documenter
 
 //--------------------------------------------- configuration mesures
-    #define TEMPS_CYCLE     20000   // période d envoi des mesures en millisecondes
+    #define TEMPS_CYCLE     20000   // Temps de cycle : période d envoi des mesures au serveur en millisecondes
     #define NB_MESURE       5       // nombre de mesure élémentaires dans le temps de cycle pour calcul du niveau de qualité
     #define VALEUR_MIN_PM   0.0     // limite mini autorisee pour les PM
     #define VALEUR_MAX_PM   1000.0  // limite maxi autorisee pour les PM
     #define SEUIL_BON_PM    10.0    // seuil affichage pour les PM
     #define SEUIL_MOYEN_PM  20.0    // seuil affichage pour les PM
-  
-//--------------------------------------------- parametres Sigfox
-  #ifdef BOARDSIGFOX
-    const boolean test = false;      // test uniquement des capteurs sans utilisation de Sigfox
-    const boolean oneshot = true;    // affichage des infos d'envoi sigfox
-  #endif
-  
-//--------------------------------------------- parametres mesures
-    const int     NB_MES  = 2;                // quantité de mesures à effectuer (ici 2 :PM25 et PM10)
-    const char    *DEVICE_NAME = "sensor9";   // nom du device a documenter
-  
+
 //--------------------------------------------- parametres wifi
   #ifdef RESEAUWIFI
     const String  SERVEUR_AI4GOOD = "http://simple-ai4good-sensors-api.herokuapp.com/data";
     const char    *AUTO_CONNECT = "AI for GOOD";
   #endif
-  
-//--------------------------------------------- parametres affichage LED
-    const int     ROUGE[3]  = {127, 0, 0};
-    const int     ORANGE[3] = {255, 165, 0};
-    const int     BLEU[3]   = {30, 144, 255};
-    const int     VERT[3]   = {0, 128, 0};
-    const int     LUMINOSITE_FORTE  = 250;   // maxi 255
-    const int     LUMINOSITE_FAIBLE = 50;
-  
+
   #ifdef COMPRESSION
 //--------------------------------------------- parametres compression
     const float SEUIL_ECT = 0.001; // seuil minimum de l'écart-type (évite division par 0)
@@ -86,30 +75,63 @@
     const float PLB     = 3.0;      // plage pour les coefficients b de niveau 1 : abs(b) < plb * ecart-type ex. 3.0
     const int   BITS    = 8;        // nb de bits pour les coeff de niveau 0 ex. 8
     const int   BITC    = 4;        // nb de bits pour les coeff de niveau 1 ex. 4
+    const int   TOTAL_BIT   = (4 * BITS + NBREG * 2 * BITC);  // nombre de bit à envoyer
   
 //--------------------------------------------- paramètres de l'échantillon
     const int   TAILLE_ECH  = 32;                             // nombre de mesures d'un échantillon de la régression principale ex.32
     const int   TAILLE_ECH2 = TAILLE_ECH / NBREG;             // nombre de mesures des échantillons de la régression complémentaire
   #endif
   
-//--------------------------------------------- paramètres de l'envoi
+/*
+ ****************************************************************************************************************
+             Paramètres qui impactent le code
+ ****************************************************************************************************************
+*/
+//--------------------------------------------- parametres structure de données --------------------------------
+    #define   NB_MES    2                     // nombre de mesures à effectuer (ici 2 :PM25 et PM10)
+    #define   FIC_BUF   "/buffer.txt"         // fichier de stockage des mesures non encore envoyées     
+    #define   TAILLE_MAX_JSON   400           // taille maxi des fichiers JSON
+
+//--------------------------------------------- parametres Sigfox --------------------------------
+  #ifdef BOARDSIGFOX
+    const boolean test = false;      // test uniquement des capteurs sans utilisation de Sigfox
+    const boolean oneshot = true;    // affichage des infos d'envoi sigfox
+  #endif
+
+//--------------------------------------------- parametres affichage LED --------------------------------
+    const int     ROUGE[3]          = {127, 0, 0};
+    const int     ORANGE[3]         = {255, 165, 0};
+    const int     BLEU[3]           = {30, 144, 255};
+    const int     VERT[3]           = {0, 128, 0};
+    const int     LUMINOSITE_FORTE  = 250;   // maxi 255
+    const int     LUMINOSITE_FAIBLE = 50;
+    const int     NIVEAU_FORT       = 1;
+    const int     NIVEAU_MOYEN      = 4;
+    const int     NIVEAU_FAIBLE     = 10;                     // niveau utilisé pour le niveu bas de la batterie
+    const int     NIVEAU_ETEINT     = 1000;
+    
+//--------------------------------------------- paramètres de l'envoi --------------------------------
   #ifdef BOARDSIGFOX
     const int   TAILLE_MSG  = 32;                             // nombre de bit des messages composant le "payload" (3 messages pour un payload Sigfox de 12 octets)
     const int   TAILLE_PAY  = 96;                             // nombre de bit du "payload" (Sigfox 12 octets)
-    const int   TOTAL_BIT   = (4 * BITS + NBREG * 2 * BITC);  // nombre de bit à envoyer
   #endif
 
-//--------------------------------------------- structures de données
+//--------------------------------------------- structures de données --------------------------------
+  struct DateRef {
+    unsigned long  dateInt;         // date interne correspondante à la date externe (en millisecondes)
+    unsigned long  dateExt;         // date externe issue du serveur lors de l'envoi des données (en millisecondes)
+    unsigned long  decalage;        // complément à ajouter à une date interne pour avoir une date absolue (en millisecondes)
+  };
   struct Mesure {
-    String  nom;                  // nom de la mesure ex. PM10
-    int     nombre;               // nombre de mesures effectuées dans le temps de cycle
-    int     nombreOk;             // nombre de mesures correctes dans le temps de cycle
-    double  valeur;               // valeur de la mesure calculée dans le temps de cycle
-    float   ecartType;            // écart-type des valeurs bonnes
-    float   date;                 // date de la mesure
-    float   valeurMin;            // valeur min autorisée pour la mesure
-    float   valeurMax;            // valeur max autorisée pour la mesure
-    float   tauxErreur;           // ratio nombre de mesures correctes / nombre de mesures effectuées
+    String  nom;                    // nom de la mesure ex. PM10
+    int     nombre;                 // nombre de mesures effectuées dans le temps de cycle
+    int     nombreOk;               // nombre de mesures correctes dans le temps de cycle
+    double  valeur;                 // valeur de la mesure calculée dans le temps de cycle
+    float   ecartType;              // écart-type des valeurs bonnes
+    unsigned int  date;             // date de la mesure
+    float   valeurMin;              // valeur min autorisée pour la mesure
+    float   valeurMax;              // valeur max autorisée pour la mesure
+    float   tauxErreur;             // ratio nombre de mesures correctes / nombre de mesures effectuées
   };
   #ifdef COMPRESSION
     struct CoefReg {
@@ -141,10 +163,17 @@
       uint32_t msg3;
     } SigfoxMessage;
   #endif
-
-
-
-
-
+//--------------------------------------------- affichages sur la liaison série --------------------------------
+#ifdef DEBUG
+  #define Log_ln(x)     Serial.println(x)
+  #define Log_ln2(x,y)  Serial.println(x,y)
+  #define Log(x)        Serial.print(x)
+  #define Log2(x,y)     Serial.print(x,y)
+#else
+  #define Log_ln(x)     
+  #define Log_ln2(x,y)  
+  #define Log(x)        
+  #define Log2(x,y)     
+#endif
 
 #endif
