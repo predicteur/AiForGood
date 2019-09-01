@@ -9,6 +9,7 @@
 Les principales fonctions intégrées sont les suivantes :
 - interfacage filaire avec les capteurs,
 - génération de mesures qualifiées (calcul d'un niveau de qualité)
+- horodatage des mesures
 - restitution visuelle des mesures (affichage des valeurs sur LED)
 - stockage local des données pour reprise sur défaut de connexion
 - envoi des données via différents réseaux (WiFi, Sigfox, LoRa)
