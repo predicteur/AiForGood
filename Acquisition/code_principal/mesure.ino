@@ -21,19 +21,19 @@
   void CreerMesure(){
     InitMesure();
     
-    mes[0].nom = "PM25";
-    mes[0].valeurMin = VALEUR_MIN_PM;
-    mes[0].valeurMax = VALEUR_MAX_PM;
+    mes[M_PM25].nom = "PM25";
+    mes[M_PM25].valeurMin = VALEUR_MIN_PM;
+    mes[M_PM25].valeurMax = VALEUR_MAX_PM;
   
-    mes[1].nom = "PM10";
-    mes[1].valeurMin = VALEUR_MIN_PM;
-    mes[1].valeurMax = VALEUR_MAX_PM;
+    mes[M_PM10].nom = "PM10";
+    mes[M_PM10].valeurMin = VALEUR_MIN_PM;
+    mes[M_PM10].valeurMax = VALEUR_MAX_PM;
   }
 //-----------------------------------------------------------------------------------------------------------------------------
   void CalculMesure(){
     for (int nMes = 0; nMes < NB_MES; ++nMes) {
       mes[nMes].nombre += 1;
-      mes[nMes].date += millis();
+      mes[nMes].date += millis()/100;
       if ((pm[nMes] > mes[nMes].valeurMin) and (pm[nMes] < mes[nMes].valeurMax)) {
           mes[nMes].valeur += pm[nMes];
           mes[nMes].nombreOk += 1;

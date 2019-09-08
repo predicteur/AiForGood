@@ -2,36 +2,45 @@
       ESP     -> Type de carte : Node MCU 1.0(ESP-12E Module) / Options : 80 MHz, Flash, 4M (3M SPIFFS), v2 Lower Memory, Disabled, None, Only Sketch / programmateur : Arduino as ISP / Outils : ESP8266 Sketch Data Upload (envoi des fichiers Data)
       MKR1200 -> Type de carte : ARDUINO MKR FOX 1200 / programmateur : ATMEL-ICE
 */
+
+//#define BLYNK_PRINT Serial
+//#include <BlynkSimpleEsp8266.h>
+
 //---------------------------------------------include  --------------------------------------------------------------------------------
 #include "parametre.h"                                            // Déclaration de constantes, librairies et de structures de données
 //---------------------------------------------variables--------------------------------------------------------------------------------
-#ifdef RESEAUWIFI
-  // variables envois wifi
-  File ficMes;                                                    // fichier de stockage temporaire des mesures non envoyées
-  String JSONmessage;                                             // message JSON envoyé au serveur
-  String payload;                                                 // message JSON retourné par le serveur 
-  StaticJsonDocument<TAILLE_MAX_JSON> root;                       // taille à ajuster en fonction du nombre de caractères à envoyer
-#endif
+  // variables générales
+  String  modeFonctionnement= "normal";                           // 3 modes : "normal", "veille", "economie"
+  String  ressenti          = "normal";                           // 3 états : "bien", "normal", "pasbien"
   // variables affichage LED
   int     niveauAffichage   = NIVEAU_MOYEN;                       // voir les niveaux dans parametre.h
+  float   mesValeurLED      = 0;                                  // valeur issue des mesures à afficher sur la LED
   boolean niveauBatterieBas = false;                              // utilisé pour l'affichage LED
   // variables périodicité
-  //float   temps_ref_envoi   = 0;                                  // compteur de temps principal de 0 à TEMPS_CYCLE
   float   temps_ref_mesure  = 0;                                  // compteur de temps intermédiaire de 0 à TEMPS_CYCLE/NB_MESURE
+  unsigned long timerVeille = 0;                                  // compteur de temps de clignotement en veille
   int     nbMesureGroupe    = 0;                                  // compteur de mesures pour envoi groupé Sigfox de 0 à TAILLE_ECH
   int     nbMesureElem      = 0;                                  // compteur de mesures élémentaires dans le temps de cycle pour calcul du niveau de qualité
   DateRef dateRef           = {0, 0, 0};
-  // variables mesures
+  // variables mesures et capteurs
+  //struct WorkingStateResult etatSDS;                                     // état de fonctionnement du capteur SDS
   Mesure  mes[NB_MES];                                            // tableau des informations liées à une mesure
   double  pm [NB_MES];                                            // mesure de PM2.5 et PM10
   // variables ressenti
   int     sensorVal1;                                             // 0 : rien, 1 : ok
   int     sensorVal2;                                             // 0 : rien, 1 : moyen
   int     sensorVal3;                                             // 0 : rien, 1 : pas bon
+#ifdef RESEAUWIFI
+  // variables envois wifi
+  File    ficMes;                                                 // fichier de stockage temporaire des mesures non envoyées
+  String  JSONmessage;                                            // message JSON envoyé au serveur
+  String  payload;                                                // message JSON retourné par le serveur 
+  StaticJsonDocument<TAILLE_MAX_JSON> root;                       // taille à ajuster en fonction du nombre de caractères à envoyer
+#endif
 #ifdef COMPRESSION
   // variables series de mesures
-  Mesure mesEnvoi[NB_MES][TAILLE_ECH];                            // tableau des mesures à envoyer
-  CoefReg coef      = {0.0, 0.0, 0.0};                            // paramètre de chaque régression unitaire
+  Mesure   mesEnvoi[NB_MES][TAILLE_ECH];                          // tableau des mesures à envoyer
+  CoefReg  coef     = {0.0, 0.0, 0.0};                            // paramètre de chaque régression unitaire
   CoefComp coefc    = {0.0, 0.0, 0.0, {}, {}, 0.0};               // coefc : paramètres issue de la compression ou de l'optimisation
   CoefComp coefp    = {0.0, 0.0, 0.0, {}, {}, 0.0};               // coefp : paramètres issus du decodage
   CoefCode coefi    = {0, 0, 0.0, {}, {}, 0.0};                   // paramètre après codage
@@ -68,10 +77,11 @@
     StripAffiche("démarrage");
   
     // initialisation capteur PM
+    sds.begin();
     Serial.println(sds.queryFirmwareVersion().toString());       // prints firmware version
     Serial.println(sds.setActiveReportingMode().toString());     // ensures sensor is in 'active' reporting mode
     Serial.println(sds.setContinuousWorkingPeriod().toString()); // ensures sensor has continuous working period - default but not recommended
-    sds.begin();
+    //WorkingStateResult etatSDS = sds.wakeup();                   // initialisation de etat SDS
 #ifdef BOARDSIGFOX
     // initialisation Sigfox
     if (!SigFox.begin()) {
@@ -96,71 +106,92 @@
     // initialisation Serveur WiFi
     WiFi.mode(WIFI_AP_STA);                                       // mode mixte server et client
     WiFiManager wifiManager;                                      // WiFi option non fixe
-    if (MEMIDENTIFIANT == 0){wifiManager.resetSettings();}        // garder en mémoire ou non les anciens identifiants
-    wifiManager.autoConnect(AUTO_CONNECT);                        // connexion automatique aux réseaux disponibles
-    Serial.println("Connected to : " + WiFi.SSID()); 
+    if (MEM_IDENTIFIANT == 0){wifiManager.resetSettings();}        // garder en mémoire ou non les anciens identifiants
+    wifiManager.autoConnect(AUTO_CONNECT);                        // connexion automatique au réseau précédent si MEMIDENTIFIANT = 1
+    //wifiManager.autoConnect("Freebox-Lilith", "youwontforgetmyname");      
+    Serial.println("Connected toto : " + WiFi.SSID()); Serial.println("");
+    Serial.print("IP address : "); +  Serial.println(WiFi.localIP()); Serial.println("");
   
     // serveur web
-    server.on("/mesures.json", SendMesureWeb);
-    server.on("/BIEN",    []() {sensorVal1 = 1; sensorVal2 = 0; sensorVal3 = 0; Serial.println("BIEN")   ; server.send(200, "text/plain", "/index.html");});
-    server.on("/NORMAL",  []() {sensorVal1 = 0; sensorVal2 = 1; sensorVal3 = 0; Serial.println("NORMAL") ; server.send(200, "text/plain", "/index.html");});
-    server.on("/PASBIEN", []() {sensorVal1 = 0; sensorVal2 = 0; sensorVal3 = 1; Serial.println("PASBIEN"); server.send(200, "text/plain", "/index.html");});
+    server.on("/mesures.json", HTTP_GET, SendMesureWeb);
     server.serveStatic("/", SPIFFS, "/index.html");
     server.serveStatic("/index.html", SPIFFS, "/index.html");
     server.begin();
 #endif    
-    StripAffiche("démarré");
+    StripAffiche("controleur démarré");
+
+    //Blynk.begin("YF4nOYISynxxazzjW8aXMS1CrB3-H_B5", "Freebox-Lilith", "youwontforgetmyname");
   }
 //---------------------------------------------boucle--------------------------------------------------------------------------------
   void loop() {
-
-    // boucle de réalisation des mesures intermédiaires
-    if ( (millis() - temps_ref_mesure) >= float(TEMPS_CYCLE)/float(NB_MESURE) ) {
-        temps_ref_mesure = millis();
-        StripAffiche("début mesure");
-        LireCapteur();                                      // lecture des données dans pm[]
-        CalculMesure();                                     // ajout des valeurs instantanées dans mes.xxx
-        StripAffiche("fin mesure");
-        nbMesureElem ++;
-    }
-    // boucle principale de mesure
-    if ( nbMesureElem >= NB_MESURE ){
-        nbMesureElem = 0;
+    
+    //Blynk.run();
+    
+    if (modeFonctionnement == "veille") {
+      StripAffiche("mode veille SDS");
+      WorkingStateResult etatSDS = sds.sleep();
+      if (etatSDS.isWorking()) {
+        Serial.println("Probleme de mise en sommeil SDS");
+      }
+    } else {
+      WorkingStateResult etatSDS = sds.wakeup();
+      if (!etatSDS.isWorking()) {
+        Serial.println("Probleme de reveil SDS");
+      }
+      if (modeFonctionnement == "economie") {
+          niveauAffichage = NIVEAU_FAIBLE;
+      } else {
+          niveauAffichage = NIVEAU_MOYEN;        
+      }
+      // boucle de réalisation des mesures intermédiaires
+      if ( (millis() - temps_ref_mesure) >= float(TEMPS_CYCLE)/float(NB_MESURE) ) {
+          temps_ref_mesure = millis();
+          StripAffiche("début mesure");
+          LireCapteur();                                      // lecture des données dans pm[]
+          CalculMesure();                                     // ajout des valeurs instantanées dans mes.xxx
+          StripAffiche("fin mesure");
+          nbMesureElem ++;
+      }
+      // boucle principale de mesure
+      if ( nbMesureElem >= NB_MESURE ){
+          nbMesureElem = 0;
 #ifdef RESEAUWIFI
-        // envoi des données stockées à renvoyer
-        RepriseEnvoiWifi();                                 // essai de renvoi des mesures du fichier
+          // envoi des données stockées à renvoyer
+          RepriseEnvoiWifi();                                 // essai de renvoi des mesures du fichier
 #endif
-        GenereMesure();                                     // calcul de la mesure moyenne dans mes.xxx
-        if (MesureOk()) {
-            PrMesure();                                     
+          GenereMesure();                                     // calcul de la mesure moyenne dans mes.xxx
+          if (MesureOk()) {
+              PrMesure();                                     
 #ifdef RESEAUWIFI
-            EnvoiWifi();                                    // envoi sur le serveur (et stockage fichier si KO)
+              EnvoiWifi();                                    // envoi sur le serveur (et stockage fichier si KO)
 #else
-            GroupeMesure();                                 // ajout de la mesure au groupe de mesure à envoyer par Sigfox   
+              GroupeMesure();                                 // ajout de la mesure au groupe de mesure à envoyer par Sigfox   
 #endif
-        } 
-        else {
-            StripAffiche("mesure non envoyée"); delay(2000);
-        }
-        niveauBatterieBas = TestBatterieBasse();            // test à mettre en place (mesure)
+          } 
+          else {
+              StripAffiche("mesure non envoyée"); delay(2000);
+          }
+          niveauBatterieBas = TestBatterieBasse();            // test à mettre en place (mesure)
 #ifdef COMPRESSION
-        nbMesureGroupe ++;
+          nbMesureGroupe ++;
 #endif
-        UpdateLed();                                        // affichge du niveau sur les LED
-        InitMesure();
-        InitRessenti();
-    }
+          mesValeurLED = mes[M_LED].valeur;
+          UpdateLed();                                        // affichge du niveau sur les LED
+          InitMesure();
+          InitRessenti();
+      }
 #ifdef COMPRESSION
-    // boucle d'envoi des données groupées
-    if ( nbMesureGroupe >= TAILLE_ECH ){
-        nbMesureGroupe = 0;      
-        GenereGroupe();                                      // préparation des données à compresser avant envoi
-        PrSerie(y0init, TAILLE_ECH, "y0init");
-        compress();                                          // compression des données
-        PrSerie(y0fon, TAILLE_ECH, "y0fon apres compress");
-        EnvoiSigfox();                                       // envoi sigfox des données compressées
-    }
+      // boucle d'envoi des données groupées
+      if ( nbMesureGroupe >= TAILLE_ECH ){
+          nbMesureGroupe = 0;      
+          GenereGroupe();                                      // préparation des données à compresser avant envoi
+          PrSerie(y0init, TAILLE_ECH, "y0init");
+          compress();                                          // compression des données
+          PrSerie(y0fon, TAILLE_ECH, "y0fon apres compress");
+          EnvoiSigfox();                                       // envoi sigfox des données compressées
+      }
 #endif
+    }
 #ifdef RESEAUWIFI
     // traitement des requetes des pages web
     WiFiClient client;

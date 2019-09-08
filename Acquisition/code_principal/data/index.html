@@ -25,88 +25,71 @@
                 </table>
                 <h3 class='text-center'>My FEELING</h3>
                 <br /><br />
+                      <div class='row'>
+                          <div class='col-md-12'>
+                              <a id="BIEN" class='btn btn-success btn-lg btn-block' style='padding-top:1%;padding-bottom:1%;' href="#">FRESH AIR</a>
+                              <br /><br />
+                              <a id="NORMAL" class='btn btn-primary btn-lg btn-block' style='padding-top:1%;padding-bottom:1%;' href="#">COMMON AIR</a>
+                              <br /><br />
+                              <a id="PASBIEN" class='btn btn-danger btn-lg btn-block' style='padding-top:1%;padding-bottom:1%;' href="#">STALE AIR</a>
+                              <br />
+                          </div>
+                      </div>
+                <h3 class='text-center'>Paramètres</h3>
+                <br /><br />
                 <div class='row'>
-                    <div class='col-md-12'>
-                        <a id="BIEN" class='btn btn-success btn-lg btn-block' style='padding-top:3%;padding-bottom:3%;' href="">FRESH AIR</a>
-                        <br /><br />
-                        <a id="NORMAL" class='btn btn-primary btn-lg btn-block' style='padding-top:3%;padding-bottom:3%;' href="">COMMON AIR</a>
-                        <br /><br />
-                        <a id="PASBIEN" class='btn btn-danger btn-lg btn-block' style='padding-top:3%;padding-bottom:3%;' href="">STALE AIR</a>
-                        <br />
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                            mode de fonctionnement
+                        </button>
+                        <div class="dropdown-menu">
+                            <a id="modeNormal" class="dropdown-item" href="#">Normal</a>
+                            <div class="dropdown-divider"></div>
+                            <a id="modeVeille" class="dropdown-item" href="#">Veille</a>
+                            <div class="dropdown-divider"></div>
+                            <a id="modeEconomie" class="dropdown-item" href="#">Economie</a>
+                        </div>
                     </div>
                 </div>
-                <!--<h3 class='text-center'>Coordonnées GPS</h3>
-                <button onclick="majGps()">coordonnées : </button>
-                <br /><br />
-                <p id="Test"></p>-->                
             </div>
         </div>
     </div>
     <script>
-        var bien = document.getElementById("BIEN");
-        var normal = document.getElementById("NORMAL");
-        var pasbien = document.getElementById("PASBIEN");
-        var pm25 = document.getElementById("pm25");
-        var pm10 = document.getElementById("pm10");
-        //var x = document.getElementById("Test");
+        var bien        = document.getElementById("BIEN");
+        var normal      = document.getElementById("NORMAL");
+        var pasbien     = document.getElementById("PASBIEN");
+        var pm25        = document.getElementById("pm25");
+        var pm10        = document.getElementById("pm10");
+        var modeVeille  = document.getElementById("modeVeille");
+        var modeEconomie= document.getElementById("modeEconomie");
+        var modeNormal  = document.getElementById("modeNormal");
+        var modeFonc    = "";
+        var ressenti    = "";
 
         function updateData(lien="/mesures.json") {
             var xhr = new XMLHttpRequest();
-            console.log(lien);
-            xhr.open('GET', lien, false);       // false : ESP s'emmele les crayons en asynchrone
-            xhr.send(null);
-            if ((xhr.status === 200 || xhr.status === 0)&(lien === "/mesures.json")) {
-                    var response = JSON.parse(xhr.responseText);
-                    console.log("lecture fichier json"); console.log(response);
+            var parametre = { modeFonctionnement: "", ressenti:""};
+            xhr.onreadystatechange = function() {
+                if ((this.readyState == 4) & (this.status == 200 || this.status === 0) & (this.responseText != null)) {                             // Indicateur de l'avancement de l'appel AJAX == 4 => Données complètement accessibles
+                    var response = JSON.parse(this.responseText);
                     pm25.textContent = response.PM25;
                     pm10.textContent = response.PM10;
+                }
             }
+            parametre.modeFonctionnement = modeFonc;
+            parametre.ressenti = ressenti;
+            lien = lien + "?parametre=" + JSON.stringify(parametre);
+            xhr.open("GET",lien, true);        
+            xhr.send();
         }
-        bien.addEventListener('click', function() { console.log("click sur Bien"); updateData("/BIEN");});
-        normal.addEventListener('click', function() { console.log("click sur normal"); updateData("/NORMAL");});
-        pasbien.addEventListener('click', function() { console.log("click sur pasbien");updateData("/PASBIEN");});
-        updateData("/mesures.json");
-        window.setInterval(updateData, 5000);
+        bien.addEventListener           ('click', function() { console.log("click sur Bien");           ressenti = "bien";      });
+        normal.addEventListener         ('click', function() { console.log("click sur normal");         ressenti = "normal";    });
+        pasbien.addEventListener        ('click', function() { console.log("click sur pasbien");        ressenti = "pasbien";   });
+        modeVeille.addEventListener     ('click', function() { console.log("click sur modeVeille");     modeFonc = "veille";    });
+        modeNormal.addEventListener     ('click', function() { console.log("click sur modeNormal");     modeFonc = "normal";    });
+        modeEconomie.addEventListener   ('click', function() { console.log("click sur modeEconomie");   modeFonc = "economie";  });
+        window.setInterval(updateData, 10000);
 
-        /* Check for Geolocation API permissions
-        navigator.permissions.query({name:'geolocation'}).then(function(p) {
-          updatePermission('geolocation', p.state);
-          p.onchange = function() {
-            updatePermission('geolocation', this.state);
-          };
-        });
-
-        function majGps() {
-            //Check if Geolocation is supported 
-            if (navigator.geolocation) {
-            //the watchposition() method show the position of the user and update it while is moving
-                navigator.geolocation.watchPosition(affichePosition, afficheErreur);
-            } else { 
-            //If not, display a message to the user
-                x.innerHTML = "Geolocation non supportée.";
-            }
-        }
-        //The showPosition() function outputs the Latitude and Longitude
-        function affichePosition(position) {
-            x.innerHTML = "Latitude: " + position.coords.latitude + 
-            "<br>Longitude: " + position.coords.longitude;
-        }
-        function afficheErreur(error) {
-            switch(error.code) {
-                case error.PERMISSION_DENIED:
-                    x.innerHTML = "User denied the request for Geolocation."
-                    break;
-                case error.POSITION_UNAVAILABLE:
-                    x.innerHTML = "Location information is unavailable.";
-                    break;
-                case error.TIMEOUT:
-                    x.innerHTML = "The request to get user location timed out."
-                    break;
-                case error.UNKNOWN_ERROR:
-                    x.innerHTML = "An unknown error occurred."
-                    break;
-            }
-        }*/
     </script>
 </body>
 </html>

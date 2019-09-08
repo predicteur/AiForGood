@@ -27,7 +27,43 @@
     #include <SdsDustSensor.h>
     #include <ArduinoJson.h>
     #include <Adafruit_NeoPixel.h>
-  
+    
+/*
+ ****************************************************************************************************************
+             Paramètres qui impactent le code
+ ****************************************************************************************************************
+*/
+//--------------------------------------------- parametres structure de données --------------------------------
+    #define   NB_MES    2                     // nombre de mesures à effectuer (ici 2 :PM25 et PM10)
+    #define   M_PM25    0                     // indice de la mesure PM25 dans le tableau des mesures
+    #define   M_PM10    1                     // indice de la mesure PM10 dans le tableau des mesures
+    #define   FIC_BUF   "/buffer.txt"         // fichier de stockage des mesures non encore envoyées     
+    #define   TAILLE_MAX_JSON   400           // taille maxi des fichiers JSON
+
+//--------------------------------------------- parametres Sigfox --------------------------------
+  #ifdef BOARDSIGFOX
+    const boolean test = false;      // test uniquement des capteurs sans utilisation de Sigfox
+    const boolean oneshot = true;    // affichage des infos d'envoi sigfox
+  #endif
+
+//--------------------------------------------- parametres affichage LED --------------------------------
+    const int     ROUGE[3]          = {250, 0, 0};
+    const int     ORANGE[3]         = {200, 50, 0};
+    const int     BLEU[3]           = {30, 140, 200};
+    const int     VIOLET[3]         = {250, 0, 200};
+    const int     VERT[3]           = {0, 250, 0};
+    const int     LUMINOSITE_FORTE  = 250;   // maxi 255
+    const int     LUMINOSITE_FAIBLE = 50;
+    const int     NIVEAU_FORT       = 1;
+    const int     NIVEAU_MOYEN      = 4;
+    const int     NIVEAU_FAIBLE     = 10;                     // niveau utilisé pour le niveu bas de la batterie
+    const int     NIVEAU_ETEINT     = 1000;
+    
+//--------------------------------------------- paramètres de l'envoi --------------------------------
+  #ifdef BOARDSIGFOX
+    const int   TAILLE_MSG  = 32;                             // nombre de bit des messages composant le "payload" (3 messages pour un payload Sigfox de 12 octets)
+    const int   TAILLE_PAY  = 96;                             // nombre de bit du "payload" (Sigfox 12 octets)
+  #endif
 
 /*
  ****************************************************************************************************************
@@ -38,12 +74,12 @@
   #ifdef BOARDSIGFOX
     #define LED_PIN         8       // affichage de l'état des mesures
   #else
-    #define LED_PIN         D1      // affichage de l'état des mesures (D8 par défaut, D1 sur ESP de test Philippe)
+    #define LED_PIN         D8      // affichage de l'état des mesures (D8 par défaut, D1 sur ESP de test Philippe)
     #define RXPIN           14      // laison capteur
     #define TXPIN           12      // laison capteur
   #endif
     #define LED_COUNT       1       // nombre de LED dans le ruban
-    #define MEMIDENTIFIANT  0       // 0 : pas de mémorisation des accès WiFi, 1 : mémorisation  
+    #define MEM_IDENTIFIANT  1       // 0 : pas de mémorisation des accès WiFi, 1 : mémorisation  
     #define DEBUG           2       // affichage sur liaison série de 0 : tout, 1 : erreur, warning, 2 : debug
     const char    *DEVICE_NAME = "sensor9";   // nom du device a documenter
 
@@ -52,12 +88,13 @@
     #define NB_MESURE       5       // nombre de mesure élémentaires dans le temps de cycle pour calcul du niveau de qualité
     #define VALEUR_MIN_PM   0.0     // limite mini autorisee pour les PM
     #define VALEUR_MAX_PM   1000.0  // limite maxi autorisee pour les PM
-    #define SEUIL_BON_PM    10.0    // seuil affichage pour les PM
-    #define SEUIL_MOYEN_PM  20.0    // seuil affichage pour les PM
+    #define SEUIL_BON_PM    10.0    // seuil affichage LED pour les PM
+    #define SEUIL_MOYEN_PM  20.0    // seuil affichage LED pour les PM
+    const int   M_LED   = M_PM10;   // choix de la mesure à afficher
 
 //--------------------------------------------- parametres wifi
   #ifdef RESEAUWIFI
-    const String  SERVEUR_AI4GOOD = "http://simple-ai4good-sensors-api.herokuapp.com/data";
+    #define SERVEUR_AI4GOOD "http://simple-ai4good-sensors-api.herokuapp.com/data"
     const char    *AUTO_CONNECT = "AI for GOOD";
   #endif
 
@@ -81,40 +118,7 @@
     const int   TAILLE_ECH  = 32;                             // nombre de mesures d'un échantillon de la régression principale ex.32
     const int   TAILLE_ECH2 = TAILLE_ECH / NBREG;             // nombre de mesures des échantillons de la régression complémentaire
   #endif
-  
-/*
- ****************************************************************************************************************
-             Paramètres qui impactent le code
- ****************************************************************************************************************
-*/
-//--------------------------------------------- parametres structure de données --------------------------------
-    #define   NB_MES    2                     // nombre de mesures à effectuer (ici 2 :PM25 et PM10)
-    #define   FIC_BUF   "/buffer.txt"         // fichier de stockage des mesures non encore envoyées     
-    #define   TAILLE_MAX_JSON   400           // taille maxi des fichiers JSON
 
-//--------------------------------------------- parametres Sigfox --------------------------------
-  #ifdef BOARDSIGFOX
-    const boolean test = false;      // test uniquement des capteurs sans utilisation de Sigfox
-    const boolean oneshot = true;    // affichage des infos d'envoi sigfox
-  #endif
-
-//--------------------------------------------- parametres affichage LED --------------------------------
-    const int     ROUGE[3]          = {127, 0, 0};
-    const int     ORANGE[3]         = {255, 165, 0};
-    const int     BLEU[3]           = {30, 144, 255};
-    const int     VERT[3]           = {0, 128, 0};
-    const int     LUMINOSITE_FORTE  = 250;   // maxi 255
-    const int     LUMINOSITE_FAIBLE = 50;
-    const int     NIVEAU_FORT       = 1;
-    const int     NIVEAU_MOYEN      = 4;
-    const int     NIVEAU_FAIBLE     = 10;                     // niveau utilisé pour le niveu bas de la batterie
-    const int     NIVEAU_ETEINT     = 1000;
-    
-//--------------------------------------------- paramètres de l'envoi --------------------------------
-  #ifdef BOARDSIGFOX
-    const int   TAILLE_MSG  = 32;                             // nombre de bit des messages composant le "payload" (3 messages pour un payload Sigfox de 12 octets)
-    const int   TAILLE_PAY  = 96;                             // nombre de bit du "payload" (Sigfox 12 octets)
-  #endif
 
 //--------------------------------------------- structures de données --------------------------------
   struct DateRef {
@@ -175,5 +179,6 @@
   #define Log(x)        
   #define Log2(x,y)     
 #endif
+
 
 #endif
