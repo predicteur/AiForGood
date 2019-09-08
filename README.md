@@ -17,7 +17,7 @@ Les principales fonctions intégrées sont les suivantes :
 - avertissement du niveau d'alimentation trop faible
 - avertissement de l'absence de connexion (Wifi)
 
-Des fonctions complémentaires sont également intégrées suivants les configurations mises en place :
+Des fonctions complémentaires sont également intégrées suivant les configurations mises en place :
 - compressions des données pour les réseaux bas-débit (LoRa, Sigfox)
 - restitution sur navigateur web (WiFi)
 
@@ -34,4 +34,5 @@ Les paramètres de fonctionnement suivants sont modifiables au fil de l'eau (via
 - seuils haut et bas de validité des mesures
 - valeurs sur trois niveaux d'affichage LED des mesures
 - niveau de luminosité
+- mode de fonctionnement
 - fréquence d'envoi des données (Sigfox)
