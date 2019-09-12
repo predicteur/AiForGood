@@ -14,8 +14,9 @@ Les principales fonctions intégrées sont les suivantes :
 - stockage local des données pour reprise sur défaut de connexion
 - envoi des données via différents réseaux (WiFi, Sigfox, LoRa)
 - réglage du niveau de luminosité 
-- avertissement du niveau d'alimentation trop faible
-- avertissement de l'absence de connexion (Wifi)
+- avertissement LED du niveau d'alimentation trop faible
+- avertissement LED de l'absence de connexion (Wifi)
+- remontée de logs sur le serveur
 
 Des fonctions complémentaires sont également intégrées suivant les configurations mises en place :
 - compressions des données pour les réseaux bas-débit (LoRa, Sigfox)
