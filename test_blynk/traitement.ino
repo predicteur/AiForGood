@@ -1,43 +1,4 @@
 //-----------------------------------------------------------------------------------------------------------------------------
-  void Log(int type, String objet, String parametre) {
-    String url = SERVEUR_AI4GOOD_LOG;
-    String typeS = "infos---";
-    if        (type == 1) {
-      typeS = "warning-";
-    } else if (type == 2) {
-      typeS = "error---";
-    } else if (type == 3) {
-      typeS = "detail--";
-    } else if (type == 4) {
-      typeS = "debug---";
-    }
-    if (type < 3) {                                           // envoi des logs
-      root.clear();
-      JSONmessage = "";
-      root["equipement"]        = DEVICE_NAME;
-      root["date"]              = CalculDate(millis()/100);
-      root["type"]              = typeS;
-      root["theme"]             = theme;
-      root["objet"]             = objet;
-      root["parametre"]         = parametre;
-      if (measureJson(root) < (TAILLE_MAX_JSON-10)) {
-        serializeJson(root, JSONmessage);
-      }
-      if (JSONmessage == "") {
-        Log(1, "taille JSON supérieure à la taille maxi", "");
-      } else {
-        int httpCode = EnvoiJSON(url);
-        if (httpCode != 201) { 
-          Log(2, "retour serveur log différent de 201", "");
-        }
-      }
-    }
-    if ((MODE_LOG == "normal" & type < 3) | (MODE_LOG == "verbose" & type < 4) | (MODE_LOG == "debug" & type <5)) {
-      Serial.println(theme + " : " + typeS + " " + objet + " -- " + parametre);
-    }
-  }
-
-//-----------------------------------------------------------------------------------------------------------------------------
   void UpdateLed() { 
     if        (mesValeurLED < SEUIL_BON_PM)    { StripAffiche("correct");
     } else if (mesValeurLED < SEUIL_MOYEN_PM)  { StripAffiche("moyen");
@@ -69,8 +30,8 @@
       mois = "09";
       jour -= 31;
     }
-    String chaine = "2019-" + mois + "-" + (String)jour + "T" + (String)heure + ":" + (String)minute + ":" + (String)seconde + "." + (String)milli + "Z";
-    //Log(4, chaine + " DtoS JHMS : " + String(jour) + String(heure) + String(minute) + String(seconde), "");
+    //String chaine = "2019-" + mois + "-" + (String)jour + "T" + (String)heure + ":" + (String)minute + ":" + (String)seconde + "." + (String)milli + "Z";
+    //Serial.println( chaine + " DtoS JHMS : " + String(jour) + String(heure) + String(minute) + String(seconde));
     return "2019-" + mois + "-" + (String)jour + "T" + (String)heure + ":" + (String)minute + ":" + (String)seconde + "." + (String)milli + "00Z";
   }
 //-----------------------------------------------------------------------------------------------------------------------------
@@ -85,7 +46,7 @@
     unsigned long date      = 0;
     //Serial.println(String(annee) + String(mois) + String(jour) + String(heure) + String(minute) + String(seconde) + String(milli));
     if ((annee < 2019) || (annee > 2020) || (mois > 12) || (jour > 31) || (heure > 23) || (minute > 59) || (seconde > 59) || (milli > 9)) {
-      Log(2, "date serveur non exploitable", "");
+      Serial.println("date serveur non exploitable");
     } else {
       if (mois == 9)  { date += 31*24*60*60*10;}
       if (mois == 10) { date += 61*24*60*60*10;}
@@ -109,27 +70,25 @@
 //-----------------------------------------------------------------------------------------------------------------------------
   void StripAffiche(String modeStrip){
     int niveau = niveauAffichage; 
-    Log(4, modeStrip, "");
-    if (niveauBatterieBas) { niveau = min(niveauAffichage, NIVEAU_FAIBLE); }     
-        strip.setBrightness(LUMINOSITE_FAIBLE * niveau / 100);
+    //Serial.println(modeStrip);                                                              // mode debug
+    if (niveauBatterieBas) { niveau = max(niveauAffichage, NIVEAU_FAIBLE); }     
+        strip.setBrightness(LUMINOSITE_FAIBLE/niveau);
     if        (modeStrip == "démarrage") {     
-        strip.setBrightness(LUMINOSITE_FAIBLE * niveau / 100);
+        strip.setBrightness(LUMINOSITE_FAIBLE/niveau);
         strip.setPixelColor(0, BLEU[0], BLEU[1], BLEU[2]);
     } else if (modeStrip == "démarré") {       
         strip.setPixelColor(0, VERT[0], VERT[1], VERT[2]);
-        Log(0, modeStrip, "");
     } else if (modeStrip == "mode veille SDS") {       
         strip.setPixelColor(0, BLEU[0], BLEU[1], BLEU[2]);
         if ((millis() - timerVeille) > 6000) {                                                // clignotement
           timerVeille = millis();
         } else if ((millis() - timerVeille) > 4000){
-          strip.setBrightness(LUMINOSITE_FAIBLE * NIVEAU_FAIBLE / 100);
+          strip.setBrightness(LUMINOSITE_FAIBLE/NIVEAU_FAIBLE);
         } else {
           strip.setBrightness(0);          
         }
     } else if (modeStrip == "mesure non envoyée") {
         strip.setPixelColor(0, BLEU[0], BLEU[1], BLEU[2]);
-        Log(0, modeStrip, "");
     } else if (modeStrip == "mesure capteur sds erronée") {
         strip.setPixelColor(0, VIOLET[0], VIOLET[1], VIOLET[2]);
     } else if (modeStrip == "correct") {     
@@ -139,9 +98,9 @@
     } else if (modeStrip == "mauvais") {         
         strip.setPixelColor(0, ROUGE[0], ROUGE[1], ROUGE[2]);
     } else if (modeStrip == "début mesure") { 
-        strip.setBrightness(LUMINOSITE_FORTE * niveau / 100);
+        strip.setBrightness(LUMINOSITE_FORTE/niveau);
     } else if (modeStrip == "fin mesure") {  
-        strip.setBrightness(LUMINOSITE_FAIBLE * niveau / 100);
+        strip.setBrightness(LUMINOSITE_FAIBLE/niveau);
     }
     strip.show();
   }
@@ -150,21 +109,20 @@
     return (mes[M_PM25].nombreOk > 0) and (mes[M_PM10].nombreOk > 0);
   }
 //-----------------------------------------------------------------------------------------------------------------------------
-  void PrMesure(int level){
-    Log(level, " Nombre de mesures : " + String(mes[M_LED].nombre) + " Taux d erreur : " + String(mes[M_LED].tauxErreur), "");
-    Log(level, " Valeur : " + String(mes[M_LED].valeur) + " Ecart-type : " + String(mes[M_LED].ecartType),"");
-    Log(level, " Ressenti : " + String(sensorVal1) + String(sensorVal2) + String(sensorVal3) + " Date : " + CalculDate(mes[M_LED].date), "");
+  void PrMesure(){
+    Serial.println(" Nombre de mesures : " + String(mes[M_LED].nombre) + " Taux d erreur : " + String(mes[M_LED].tauxErreur));
+    Serial.println(" Valeur : " + String(mes[M_LED].valeur) + " Ecart-type : " + String(mes[M_LED].ecartType));
+    Serial.println(" Ressenti : " + String(sensorVal1) + String(sensorVal2) + String(sensorVal3) + " Date : " + CalculDate(mes[M_LED].date));
   }
 //-----------------------------------------------------------------------------------------------------------------------------
   void LireCapteur(){
-    theme = "capteur ";
     PmResult pm_val = sds.queryPm();
     if (pm_val.isOk()) {
       UpdateLed();                                    // remet la bonne couleur si une mesure mauvaise a eu lieu avant
       pm[M_PM25] = pm_val.pm25;
       pm[M_PM10] = pm_val.pm10;
     } else {
-      Log(2, "mesure capteur sds erronée ", "");
+      Serial.print("mesure capteur sds erronée, ");
       StripAffiche("mesure capteur sds erronée");
 #ifdef BOARDSIGFOX
       SigFox.begin(); delay(100);      
@@ -176,7 +134,7 @@
       pm[M_PM10] = 100.0 * cos(3.14159 * millis());
 #endif
     }
-    Log(3, "mesure capteur : " + String(pm[M_LED]), "");
+    Serial.println("mesure capteur : " + String(pm[M_LED]));
   }
 
 #ifdef RESEAUWIFI
@@ -185,67 +143,44 @@
     root.clear();
     JSONmessage = "";
     root["device"]            = DEVICE_NAME;
-    root["PM25"]              = String(mes[M_PM25].valeur, 2);
+    root["PM2_5"]             = String(mes[M_PM25].valeur, 2);
     root["PM10"]              = String(mes[M_PM10].valeur, 2);
     root["date_mesure"]       = CalculDate(mes[M_PM25].date);
-    root["ecart_type_PM25"]   = String(mes[M_PM25].ecartType, 2);
-    root["ecart_type_PM10"]   = String(mes[M_PM10].ecartType, 2);
-    root["taux_erreur_PM25"]  = String(mes[M_PM25].tauxErreur, 2);
-    root["taux_erreur_PM10"]  = String(mes[M_PM10].tauxErreur, 2);
-    root["niv_batt"]          = " ";
-    root["feeling"]           = ressenti;
-    root["latitude"]          = String(48.748010);
-    root["longitude"]         = String(2.293491);
+    root["ecart-type_PM25"]   = String(mes[M_PM25].ecartType, 2);
+    root["ecart-type_PM10"]   = String(mes[M_PM10].ecartType, 2);
+    root["taux-erreur_PM25"]  = String(mes[M_PM25].tauxErreur, 2);
+    root["taux-erreur_PM10"]  = String(mes[M_PM10].tauxErreur, 2);
+    root["positive_feeling"]  = String(sensorVal1, 2);
+    root["mixed_feeling"]     = String(sensorVal2, 2);
+    root["negative_feeling"]  = String(sensorVal3, 2);
     if (measureJson(root) < (TAILLE_MAX_JSON-10)) {
       serializeJson(root, JSONmessage);
     }
   }
 //-----------------------------------------------------------------------------------------------------------------------------
-  int EnvoiJSON(String url) { 
+  int EnvoiJSON() { 
     int httpCode = 0;
-    theme = "wifi    ";
-    if ((WiFi.status() == WL_CONNECTED)&& !token_presence) {                                  
+    if (WiFi.status() == WL_CONNECTED) {                                  
       HTTPClient http;
-      http.begin(SERVEUR_AI4GOOD_LOGIN, SERVEUR_AI4GOOD_FINGER);
-      //http.addHeader("Content-Type", "application/json");                 
-      http.addHeader("Content-Type", "application/x-www-form-urlencoded"); //Specify content-type header
-      //  Serial.println("username=" + String(AI4GOOD_USERNAME) + "&password=" + String(AI4GOOD_PASSWORD));    
-      httpCode = http.POST("username=" + String(AI4GOOD_USERNAME) + "&password=" + String(AI4GOOD_PASSWORD));
+      http.begin(SERVEUR_AI4GOOD);
+      http.addHeader("Content-Type", "application/json");                 
+      httpCode = http.POST(JSONmessage);                                  
       payload = http.getString();                                  
-      http.end(); 
-      root.clear();
-      deserializeJson(root, payload);
-      Log(4, "payload token :" + payload, "");    
-      String sensor = root["token"]; 
-      token = String("Bearer " + sensor);
-      token_presence = true;
-      Log(4, token, "");    
-      delay(10000);  
-    }
-    if (WiFi.status() == WL_CONNECTED) {                                     
-      HTTPClient http;
-      //http.begin("https://ai-for-good-api.herokuapp.com/send/data", "08 3B 71 72 02 43 6E CA ED 42 86 93 BA 7E DF 81 C4 BC 62 30‎"); // url pour envoyer les mesures
-      http.begin(url, SERVEUR_AI4GOOD_FINGER);
-      http.addHeader("Authorization", token);
-      http.addHeader("Content-Type", "application/json");             
-      httpCode = http.POST(JSONmessage);                       
-      payload  = http.getString();                                
-      http.end(); 
-      Log(4, "JSONmessage : " + url + "  " + JSONmessage, "" );
-      Log(4, "payload     : " + url + "  " + payload, "");
+      http.end();        
+      Serial.println("JSONmessage : " + JSONmessage);
+      Serial.println("payload     : " + payload);
     } else {
-      Log(2, "wifi déconnecté", "");
+      Serial.println("wifi déconnecté");
     }
-    Log(4, "httpCode : " + String(httpCode) + " " + url, "");
+    Serial.println("httpCode : " + String(httpCode));
     return httpCode;    
   }
 //-----------------------------------------------------------------------------------------------------------------------------
   void RecalageDate(unsigned long dateReponseInt) {               // lecture de la date serveur pour recalage
-    theme = "wifi    ";    
     root.clear();
     DeserializationError err = deserializeJson(root, payload);
     if (err) {
-      Log(2, "retour serveur data erroné", "");
+      Serial.println("retour serveur erroné");
     } else {
       const char* dateServeur = root["updated_at"];
       //Serial.println("av : " + CalculDate(dateReponseInt) +" ap : " + dateServeur);
@@ -258,40 +193,37 @@
   }
 //-----------------------------------------------------------------------------------------------------------------------------
   void AjouteMesure() {                                  // Stockage des donnnées non envoyées
-    theme = "esp     ";
     StripAffiche("mesure non envoyée");
     ficMes = SPIFFS.open(FIC_BUF, "r");
     if (!ficMes) {
-      Log(2, "ouverture fichier impossible", "");
+      Serial.println("ouverture fichier impossible");
     } else {
       String total = ficMes.readString();
       ficMes.close(); delay(50);
       ficMes = SPIFFS.open(FIC_BUF, "w");
       if (!ficMes) {
-        Log(2, "ouverture fichier impossible", "");
+        Serial.println("ouverture fichier impossible");
       } else {
         total = total + "\n" + JSONmessage;
         //total = total + JSONmessage;
         ficMes.print(total);
         ficMes.close();
-        Log(4, "total stocké : \n" + total, "");
+        Serial.println("total stocké : \n" + total);
       }
     }
   }
 //-----------------------------------------------------------------------------------------------------------------------------
   void EnvoiWifi() { 
-    String url = SERVEUR_AI4GOOD_DATA;
-    theme = "wifi    ";
     GenereJSON();
     if (JSONmessage == "") {
-      Log(2, "taille JSON supérieure à la taille maxi", "");
+      Serial.println("taille JSON supérieure à la taille maxi");
       StripAffiche("mesure non envoyée");
     } else {
-      int httpCode = EnvoiJSON(url);
+      int httpCode = EnvoiJSON();
       unsigned long dateReponseInt = millis()/100;
       if (httpCode != 201) { 
         StripAffiche("mesure non envoyée");
-        Log(2, "retour serveur data différent de 201", "");
+        Serial.println("retour serveur différent de 201");
         AjouteMesure();
       } else {
         RecalageDate(dateReponseInt);          // calcul de date en dixieme de seconde
@@ -300,89 +232,61 @@
   }
 //-----------------------------------------------------------------------------------------------------------------------------  
   void RepriseEnvoiWifi() {
-    String url = SERVEUR_AI4GOOD_DATA;
     String mesureNonReprise = "";
-    theme = "wifi    ";
     ficMes = SPIFFS.open(FIC_BUF, "r");
     if (!ficMes) {
-      Log(2, "ouverture fichier impossible", "");
+      Serial.println("ouverture fichier impossible");
     } else {
       while(ficMes.available()>5) {    
         JSONmessage = ficMes.readStringUntil('\n');
         if ((JSONmessage.length() > 10) && (JSONmessage.length() < TAILLE_MAX_JSON))  {
-          int httpCode = EnvoiJSON(url);
+          //unsigned long dateDebutReponseInt = millis()/100;
+          int httpCode = EnvoiJSON();
           if (httpCode != 201) {
             mesureNonReprise += ("\n" + JSONmessage);
+          //} else {
+          //  unsigned long dateReponseInt = millis()/100;
+          //  RecalageDate((dateReponseInt + dateDebutReponseInt)/2);         
           }
         }
       }
       ficMes.close(); delay(50);
       ficMes = SPIFFS.open(FIC_BUF, "w");
       if (!ficMes) {
-        Log(2, "ouverture fichier impossible", "");
+        Serial.println("ouverture fichier impossible");
       } else {
         ficMes.print(mesureNonReprise);
         ficMes.close();
       }
-      Log(4, "total stocké : \n" + mesureNonReprise, "");
+      Serial.println("total stocké : \n" + mesureNonReprise);
     }
   }
-//-----------------------------------------------------------------------------------------------------------------------------  
-  void AjustementParametres(){
-    theme = "param   ";
-    if (WiFi.status() == WL_CONNECTED) {                                  
-      HTTPClient http;
-      http.begin(SERVEUR_AI4GOOD_VAR);
-      http.addHeader("Content-Type", "application/json");                 
-      int httpCode = http.GET();
-      payload = http.getString();                                  
-      http.end();        
-      Log(4, "payload ajustement  : " + payload, "");
-      if ((payload == "")|(httpCode != 200)) { 
-        Log(2, "lecture des parametres indisponible", ""); 
-      } else {
-        boolean erreur = ActualisationParametres(payload);    
-      }
-    } else {
-      Log(2, "wifi déconnecté", "");
-    }
-  }
-
-//-----------------------------------------------------------------------------------------------------------------------------  
-  boolean ActualisationParametres(String parametres){      
-    theme = "param   ";
-    root.clear();
-    DeserializationError err = deserializeJson(root, parametres);
-    if (err) {
-      Log(2, "impossible de decoder les parametres", "");
-    } else {
-      const char* modeF = root["modeFonctionnement"];
-      if ((modeF != "") & (modeF != nullptr)) { modeFonctionnement = String(modeF); }
-      const char* ressent = root["ressenti"];
-      if ((ressent != "") & (ressent != nullptr)) { ressenti = String(ressent); }
-      const int mesureLED = root["MESURE_LED"];
-      Log(4,"modefonct + ressenti + mesureLED : " + modeFonctionnement + " " + ressenti + " " + mesureLED, "");
-    }
-    return err;
-  }  
 //-----------------------------------------------------------------------------------------------------------------------------  
   void SendMesureWeb(){      
-    theme = "page web";
     if( ! server.hasArg("parametre") || server.arg("parametre") == NULL ) {
       server.send(400, "text/plain", "400: Invalid Request");
-      Log(2, "retour page web erroné", "");
+      Serial.println("retour page web erroné");
       return;
     }
     // récupération des parametres
     String parametres = server.arg("parametre");
-    Log(4, "parametres : " + parametres, "");
-    boolean erreur = ActualisationParametres(parametres);
-    
+    Serial.println("parametres : " + parametres);
+    root.clear();
+    DeserializationError err = deserializeJson(root, parametres);
+    if (err) {
+      Serial.println("retour page web erroné");
+    } else {
+      const char* modeF = root["modeFonctionnement"];
+      if (modeF != "") { modeFonctionnement = String(modeF); }
+      const char* ressent = root["ressenti"];
+      if (ressent != "") { ressenti = String(ressent); }
+      Serial.println("modefonct + ressenti : " + modeFonctionnement + " " + ressenti);
+    }  
     // envoi des valeurs instantnées
     String valeurInst = "{\"PM25\" : " + String(pm[M_PM25]) + ", \"PM10\" : " + String(pm[M_PM10]) + "}";
-    Log(4, "json mesure: " + valeurInst, "");
+    Serial.println("json mesure: " + valeurInst);
     server.send(200, "application/json", valeurInst);
-    Log(3, "envoi mesures", "");
+    Serial.println("envoi mesures");
   }
 #endif
 #ifdef COMPRESSION
@@ -426,17 +330,16 @@ void GroupeMesure() {
   }
 //-----------------------------------------------------------------------------------------------------------------------------
   void EnvoiSigfox(){
-    theme = "sigfox  ";
     if (!test) {
       SigFox.begin(); delay(100);             // Start the module, Wait at least 30ms after first configuration (100ms before)
     }
     if (oneshot && !test) {
-      Log(4, "SigFox FW version " + SigFox.SigVersion(), "");
-      Log(4, "ID  = " + SigFox.ID() + "  PAC = " + SigFox.PAC(), "");
+      Serial.println("SigFox FW version " + SigFox.SigVersion());
+      Serial.println("ID  = " + SigFox.ID() + "  PAC = " + SigFox.PAC());
     }
     if (oneshot || test) {
-      Log(4, "mes[M_LED].valeur : " + String(mes[M_LED].valeur), "");
-      Log(4, "payload: " + String(payload.msg1) + " " + String(payload.msg2) + " " + String(payload.msg3), "");
+      Serial.println("mes[M_LED].valeur : " + String(mes[M_LED].valeur));
+      Serial.println("payload: " + String(payload.msg1) + " " + String(payload.msg2) + " " + String(payload.msg3));
     }
     if (!test) {
       SigFox.status(); delay(1);
@@ -446,7 +349,7 @@ void GroupeMesure() {
       SigFox.end();
     }
     if (oneshot) {
-      Log(4, " LastStatus (0 = OK): " + String(lastMessageStatus), "");
+      Serial.println(" LastStatus (0 = OK): " + String(lastMessageStatus));
     }
     // spin forever, so we can test that the backend is behaving correctly
     //if (oneshot && !test) {

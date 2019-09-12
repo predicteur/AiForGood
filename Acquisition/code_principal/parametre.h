@@ -48,16 +48,16 @@
 
 //--------------------------------------------- parametres affichage LED --------------------------------
     const int     ROUGE[3]          = {250, 0, 0};
-    const int     ORANGE[3]         = {200, 50, 0};
-    const int     BLEU[3]           = {30, 140, 200};
+    const int     ORANGE[3]         = {200, 100, 0};
+    const int     BLEU[3]           = {0, 0, 250};
     const int     VIOLET[3]         = {250, 0, 200};
     const int     VERT[3]           = {0, 250, 0};
     const int     LUMINOSITE_FORTE  = 250;   // maxi 255
     const int     LUMINOSITE_FAIBLE = 50;
-    const int     NIVEAU_FORT       = 1;
-    const int     NIVEAU_MOYEN      = 4;
+    const int     NIVEAU_FORT       = 100;                    // niveau variable de 0 à 100
+    const int     NIVEAU_MOYEN      = 25;
     const int     NIVEAU_FAIBLE     = 10;                     // niveau utilisé pour le niveu bas de la batterie
-    const int     NIVEAU_ETEINT     = 1000;
+    const int     NIVEAU_ETEINT     = 0;
     
 //--------------------------------------------- paramètres de l'envoi --------------------------------
   #ifdef BOARDSIGFOX
@@ -72,30 +72,36 @@
 */
 //--------------------------------------------- configuration matérielle / logicielle
   #ifdef BOARDSIGFOX
-    #define LED_PIN         8       // affichage de l'état des mesures
+    #define LED_PIN           8           // affichage de l'état des mesures
   #else
-    #define LED_PIN         D8      // affichage de l'état des mesures (D8 par défaut, D1 sur ESP de test Philippe)
-    #define RXPIN           14      // laison capteur
-    #define TXPIN           12      // laison capteur
+    #define LED_PIN           D8          // affichage de l'état des mesures (D8 par défaut, D1 sur ESP de test Philippe)
+    #define RXPIN             14          // laison capteur
+    #define TXPIN             12          // laison capteur
   #endif
-    #define LED_COUNT       1       // nombre de LED dans le ruban
-    #define MEM_IDENTIFIANT  1       // 0 : pas de mémorisation des accès WiFi, 1 : mémorisation  
-    #define DEBUG           2       // affichage sur liaison série de 0 : tout, 1 : erreur, warning, 2 : debug
-    const char    *DEVICE_NAME = "sensor9";   // nom du device a documenter
+    #define LED_COUNT         1           // nombre de LED dans le ruban
+    #define MEM_IDENTIFIANT   1           // 0 : pas de mémorisation des accès WiFi, 1 : mémorisation  
+    #define MODE_LOG          "verbose"    // "normal" : infos(0), warning(1), erreur(2), "verbose" : detail(3), "debug" : debug(4)
+    const char *DEVICE_NAME = "sensor9";  // nom du device a documenter
 
 //--------------------------------------------- configuration mesures
-    #define TEMPS_CYCLE     20000   // Temps de cycle : période d envoi des mesures au serveur en millisecondes
-    #define NB_MESURE       5       // nombre de mesure élémentaires dans le temps de cycle pour calcul du niveau de qualité
-    #define VALEUR_MIN_PM   0.0     // limite mini autorisee pour les PM
-    #define VALEUR_MAX_PM   1000.0  // limite maxi autorisee pour les PM
-    #define SEUIL_BON_PM    10.0    // seuil affichage LED pour les PM
-    #define SEUIL_MOYEN_PM  20.0    // seuil affichage LED pour les PM
-    const int   M_LED   = M_PM10;   // choix de la mesure à afficher
+    #define TEMPS_CYCLE     20000         // Temps de cycle : période d envoi des mesures au serveur en millisecondes
+    #define NB_MESURE       5             // nombre de mesure élémentaires dans le temps de cycle pour calcul du niveau de qualité
+    #define VALEUR_MIN_PM   0.0           // limite mini autorisee pour les PM
+    #define VALEUR_MAX_PM   1000.0        // limite maxi autorisee pour les PM
+    #define SEUIL_BON_PM    10.0          // seuil affichage LED pour les PM
+    #define SEUIL_MOYEN_PM  20.0          // seuil affichage LED pour les PM
+    const int M_LED       = M_PM10;       // choix de la mesure à afficher
 
 //--------------------------------------------- parametres wifi
   #ifdef RESEAUWIFI
-    #define SERVEUR_AI4GOOD "http://simple-ai4good-sensors-api.herokuapp.com/data"
-    const char    *AUTO_CONNECT = "AI for GOOD";
+    #define SERVEUR_AI4GOOD_VAR     "http://ai-for-good-api.herokuapp.com/api/v1/var"
+    #define SERVEUR_AI4GOOD_LOGIN   "https://ai-for-good-api.herokuapp.com/login"
+    #define SERVEUR_AI4GOOD_FINGER  "08 3B 71 72 02 43 6E CA ED 42 86 93 BA 7E DF 81 C4 BC 62 30‎"
+    #define SERVEUR_AI4GOOD_DATA    "https://ai-for-good-api.herokuapp.com/send/data"
+    #define SERVEUR_AI4GOOD_LOG     "https://ai-for-good-api.herokuapp.com/send/log"
+    #define AI4GOOD_USERNAME        "Ai4Good"
+    #define AI4GOOD_PASSWORD        "eGXyyne2RTp4JxGJ6cX8Ggn3"
+    const char *AUTO_CONNECT      = "AI for GOOD";
   #endif
 
   #ifdef COMPRESSION
@@ -168,7 +174,7 @@
     } SigfoxMessage;
   #endif
 //--------------------------------------------- affichages sur la liaison série --------------------------------
-#ifdef DEBUG
+/*#ifdef DEBUG
   #define Log_ln(x)     Serial.println(x)
   #define Log_ln2(x,y)  Serial.println(x,y)
   #define Log(x)        Serial.print(x)
@@ -178,7 +184,7 @@
   #define Log_ln2(x,y)  
   #define Log(x)        
   #define Log2(x,y)     
-#endif
+#endif*/
 
 
 #endif

@@ -1,10 +1,10 @@
-  /* Option de compilation et téléversement :
+/* Option de compilation et téléversement :
       ESP     -> Type de carte : Node MCU 1.0(ESP-12E Module) / Options : 80 MHz, Flash, 4M (3M SPIFFS), v2 Lower Memory, Disabled, None, Only Sketch / programmateur : Arduino as ISP / Outils : ESP8266 Sketch Data Upload (envoi des fichiers Data)
       MKR1200 -> Type de carte : ARDUINO MKR FOX 1200 / programmateur : ATMEL-ICE
 */
 
-//#define BLYNK_PRINT Serial
-//#include <BlynkSimpleEsp8266.h>
+#define BLYNK_PRINT Serial
+#include <BlynkSimpleEsp8266.h>
 
 //---------------------------------------------include  --------------------------------------------------------------------------------
 #include "parametre.h"                                            // Déclaration de constantes, librairies et de structures de données
@@ -12,7 +12,6 @@
   // variables générales
   String  modeFonctionnement= "normal";                           // 3 modes : "normal", "veille", "economie"
   String  ressenti          = "normal";                           // 3 états : "bien", "normal", "pasbien"
-  String  theme             = "Global  ";
   // variables affichage LED
   int     niveauAffichage   = NIVEAU_MOYEN;                       // voir les niveaux dans parametre.h
   float   mesValeurLED      = 0;                                  // valeur issue des mesures à afficher sur la LED
@@ -37,8 +36,6 @@
   String  JSONmessage;                                            // message JSON envoyé au serveur
   String  payload;                                                // message JSON retourné par le serveur 
   StaticJsonDocument<TAILLE_MAX_JSON> root;                       // taille à ajuster en fonction du nombre de caractères à envoyer
-  String  token;
-  boolean token_presence = false;
 #endif
 #ifdef COMPRESSION
   // variables series de mesures
@@ -69,7 +66,6 @@
 //---------------------------------------------setup--------------------------------------------------------------------------------
   void setup() {
   
-    theme = "setup   ";
     // initialisation liaison série
     Serial.begin(115200);                   
     delay(10); Serial.println('\n');
@@ -81,11 +77,10 @@
     StripAffiche("démarrage");
   
     // initialisation capteur PM
-    theme = "capteur ";
     sds.begin();
-    Log(3, sds.queryFirmwareVersion().toString(), "");          // prints firmware version
-    Log(3, sds.setActiveReportingMode().toString(), "");        // ensures sensor is in 'active' reporting mode
-    Log(3, sds.setContinuousWorkingPeriod().toString(), "");    // ensures sensor has continuous working period - default but not recommended
+    Serial.println(sds.queryFirmwareVersion().toString());       // prints firmware version
+    Serial.println(sds.setActiveReportingMode().toString());     // ensures sensor is in 'active' reporting mode
+    Serial.println(sds.setContinuousWorkingPeriod().toString()); // ensures sensor has continuous working period - default but not recommended
     //WorkingStateResult etatSDS = sds.wakeup();                   // initialisation de etat SDS
 #ifdef BOARDSIGFOX
     // initialisation Sigfox
@@ -98,27 +93,24 @@
     }
 #endif
 #ifdef RESEAUWIFI
-    theme = "ESP     ";
     // initialisation serveur de fichier
     if (!SPIFFS.begin()){
-      Log(2, "SPIFFS Mount failed", "");
+      Serial.println("SPIFFS Mount failed");
     } else {
-      Log(3, "SPIFFS Mount succesfull", "");
+      Serial.println("SPIFFS Mount succesfull");
     }
-    ficMes = SPIFFS.open(FIC_BUF, "w");                           // pour vider le fichier des mesures en attente
-    ficMes.println("vide");                                       // pour vider le fichier des mesures en attente
-    ficMes.close();                                               // pour vider le fichier des mesures en attente
+    //ficMes = SPIFFS.open(FIC_BUF, "w");                           // pour vider le fichier des mesures en attente
+    //ficMes.println("vide");                                       // pour vider le fichier des mesures en attente
+    //ficMes.close();                                               // pour vider le fichier des mesures en attente
 
     // initialisation Serveur WiFi
     WiFi.mode(WIFI_AP_STA);                                       // mode mixte server et client
     WiFiManager wifiManager;                                      // WiFi option non fixe
     if (MEM_IDENTIFIANT == 0){wifiManager.resetSettings();}        // garder en mémoire ou non les anciens identifiants
     wifiManager.autoConnect(AUTO_CONNECT);                        // connexion automatique au réseau précédent si MEMIDENTIFIANT = 1
-    wifiManager.setDebugOutput(String(MODE_LOG) == String("debug"));
     //wifiManager.autoConnect("Freebox-Lilith", "youwontforgetmyname");      
-    theme = "wifi    ";
-    Log(3, "Connected to : " + WiFi.SSID(), WiFi.psk());
-    Log(0, "IP address : ", WiFi.localIP().toString());
+    Serial.println("Connected toto : " + WiFi.SSID()); Serial.println("");
+    Serial.print("IP address : "); +  Serial.println(WiFi.localIP()); Serial.println("");
   
     // serveur web
     server.on("/mesures.json", HTTP_GET, SendMesureWeb);
@@ -127,44 +119,30 @@
     server.begin();
 #endif    
     StripAffiche("controleur démarré");
-    Log(0, "MODE_LOG = " + String(MODE_LOG), "");
-    
-    //Blynk.begin("YF4nOYISynxxazzjW8aXMS1CrB3-H_B5", "Freebox-Lilith", "youwontforgetmyname");
+
+    Blynk.begin("YF4nOYISynxxazzjW8aXMS1CrB3-H_B5", "Freebox-Lilith", "youwontforgetmyname");
   }
 //---------------------------------------------boucle--------------------------------------------------------------------------------
   void loop() {
-    
-#ifdef RESEAUWIFI
-    theme = "wifi    ";
-    // mise à jour des paramètres(traitement des données du serveur)
-    AjustementParametres();
-    // mise à jour des paramètres(traitement des requetes des pages web)
-    WiFiClient client;
-    server.handleClient();
-#endif    
+        
     if (modeFonctionnement == "veille") {
-      theme = "capteur ";
       StripAffiche("mode veille SDS");
-      /*WorkingStateResult etatSDS = sds.sleep();
+      WorkingStateResult etatSDS = sds.sleep();
       if (etatSDS.isWorking()) {
-        Log(1, "Probleme de mise en sommeil SDS", "");
-      }*/
+        Serial.println("Probleme de mise en sommeil SDS");
+      }
     } else {
-      /*WorkingStateResult etatSDS = sds.wakeup();
+      WorkingStateResult etatSDS = sds.wakeup();
       if (!etatSDS.isWorking()) {
-        Log(1, "Probleme de reveil SDS", "");
-      }*/
-      theme = "global  ";
+        Serial.println("Probleme de reveil SDS");
+      }
       if (modeFonctionnement == "economie") {
           niveauAffichage = NIVEAU_FAIBLE;
-      } else if (modeFonctionnement == "renforce"){
-          niveauAffichage = NIVEAU_FORT;        
       } else {
           niveauAffichage = NIVEAU_MOYEN;        
       }
       // boucle de réalisation des mesures intermédiaires
       if ( (millis() - temps_ref_mesure) >= float(TEMPS_CYCLE)/float(NB_MESURE) ) {
-          theme = "mesure  ";
           temps_ref_mesure = millis();
           StripAffiche("début mesure");
           LireCapteur();                                      // lecture des données dans pm[]
@@ -174,7 +152,6 @@
       }
       // boucle principale de mesure
       if ( nbMesureElem >= NB_MESURE ){
-          theme = "mesure  ";
           nbMesureElem = 0;
 #ifdef RESEAUWIFI
           // envoi des données stockées à renvoyer
@@ -182,7 +159,7 @@
 #endif
           GenereMesure();                                     // calcul de la mesure moyenne dans mes.xxx
           if (MesureOk()) {
-              PrMesure(3);                                     
+              PrMesure();                                     
 #ifdef RESEAUWIFI
               EnvoiWifi();                                    // envoi sur le serveur (et stockage fichier si KO)
 #else
@@ -190,7 +167,7 @@
 #endif
           } 
           else {
-              StripAffiche("mesure non envoyée"); delay(2000);
+              StripAffiche("mesure non envoyée"); //delay(2000);
           }
           niveauBatterieBas = TestBatterieBasse();            // test à mettre en place (mesure)
 #ifdef COMPRESSION
@@ -213,5 +190,10 @@
       }
 #endif
     }
-    //Blynk.run();
+#ifdef RESEAUWIFI
+    // traitement des requetes des pages web
+    WiFiClient client;
+    server.handleClient();
+#endif
+    Blynk.run();
   }

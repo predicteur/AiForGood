@@ -1,17 +1,20 @@
 #ifdef COMPRESSION
 //-----------------------------------------------------------------------------------------------------------------------------
-  void PrSerie(float serie[], int len, String nom) {
-    Serial.print(nom + " :[ ");
+  void PrSerie(int level, float serie[], int len, String nom) {
+    theme = "compres ";
+    String valeur =  nom + " :[ ";
     for (int i=0; i<len; i++){
-      Serial.print(String(serie[i]) + ", ");
+      valeur += String(serie[i]) + ", ";
     }
-    Serial.println("] ");
+    valeur += "] ";
+    Log(level, valeur, "");
   }
 //-----------------------------------------------------------------------------------------------------------------------------
-  void PrCoef(struct CoefComp *coef){
-    Serial.println("a0 : " + String(coef->a0) + " b0 : " + String(coef->b0));
-    Serial.println("a1 : " + String(coef->a1[0]) + String(coef->a1[1]));
-    Serial.println("b1 : " + String(coef->b1[0]) + String(coef->b1[1]));
+  void PrCoef(int level, struct CoefComp *coef){
+    theme = "compres ";
+    Log(level, "a0 : " + String(coef->a0) + " b0 : " + String(coef->b0), "");
+    Log(level, "a1 : " + String(coef->a1[0]) + String(coef->a1[1]), "");
+    Log(level, "b1 : " + String(coef->b1[0]) + String(coef->b1[1]), "");
   }
 //-----------------------------------------------------------------------------------------------------------------------------
   void estim(float a, float b, int len, float sserie[]){
