@@ -24,11 +24,11 @@
         serializeJson(root, JSONmessage);
       }
       if (JSONmessage == "") {
-        Log(1, "taille JSON supérieure à la taille maxi", "");
+        Log(2, "taille JSON superieure a la taille maxi", "");
       } else {
         int httpCode = EnvoiJSON(url);
-        if (httpCode != 201) { 
-          Log(2, "retour serveur log différent de 201", "");
+        if ((httpCode != 201) & (objet != "retour serveur log different de 201")) {
+          Log(2, "retour serveur log different de 201", "");
         }
       }
     }
@@ -127,10 +127,10 @@
         } else {
           strip.setBrightness(0);          
         }
-    } else if (modeStrip == "mesure non envoyée") {
+    } else if (modeStrip == "mesure non envoyee") {
         strip.setPixelColor(0, BLEU[0], BLEU[1], BLEU[2]);
         Log(0, modeStrip, "");
-    } else if (modeStrip == "mesure capteur sds erronée") {
+    } else if (modeStrip == "mesure capteur sds erronee") {
         strip.setPixelColor(0, VIOLET[0], VIOLET[1], VIOLET[2]);
     } else if (modeStrip == "correct") {     
         strip.setPixelColor(0, VERT[0], VERT[1], VERT[2]);
@@ -153,7 +153,7 @@
   void PrMesure(int level){
     Log(level, " Nombre de mesures : " + String(mes[M_LED].nombre) + " Taux d erreur : " + String(mes[M_LED].tauxErreur), "");
     Log(level, " Valeur : " + String(mes[M_LED].valeur) + " Ecart-type : " + String(mes[M_LED].ecartType),"");
-    Log(level, " Ressenti : " + String(sensorVal1) + String(sensorVal2) + String(sensorVal3) + " Date : " + CalculDate(mes[M_LED].date), "");
+    Log(level, " Ressenti : " + ressenti + " Date : " + CalculDate(mes[M_LED].date), "");
   }
 //-----------------------------------------------------------------------------------------------------------------------------
   void LireCapteur(){
@@ -164,8 +164,8 @@
       pm[M_PM25] = pm_val.pm25;
       pm[M_PM10] = pm_val.pm10;
     } else {
-      Log(2, "mesure capteur sds erronée ", "");
-      StripAffiche("mesure capteur sds erronée");
+      Log(2, "mesure capteur sds erronee ", "");
+      StripAffiche("mesure capteur sds erronee");
 #ifdef BOARDSIGFOX
       SigFox.begin(); delay(100);      
       pm[M_PM25] = SigFox.internalTemperature();
@@ -234,7 +234,7 @@
       Log(4, "JSONmessage : " + url + "  " + JSONmessage, "" );
       Log(4, "payload     : " + url + "  " + payload, "");
     } else {
-      Log(2, "wifi déconnecté", "");
+      Log(2, "wifi deconnecte", "");
     }
     Log(4, "httpCode : " + String(httpCode) + " " + url, "");
     return httpCode;    
@@ -245,9 +245,9 @@
     root.clear();
     DeserializationError err = deserializeJson(root, payload);
     if (err) {
-      Log(2, "retour serveur data erroné", "");
+      Log(2, "retour serveur data errone", "");
     } else {
-      const char* dateServeur = root["updated_at"];
+      const char* dateServeur = root["date"];
       //Serial.println("av : " + CalculDate(dateReponseInt) +" ap : " + dateServeur);
       if (StringToDate(dateServeur) > 0) {
         dateRef.dateExt = StringToDate(dateServeur);
@@ -259,7 +259,7 @@
 //-----------------------------------------------------------------------------------------------------------------------------
   void AjouteMesure() {                                  // Stockage des donnnées non envoyées
     theme = "esp     ";
-    StripAffiche("mesure non envoyée");
+    StripAffiche("mesure non envoyee");
     ficMes = SPIFFS.open(FIC_BUF, "r");
     if (!ficMes) {
       Log(2, "ouverture fichier impossible", "");
@@ -274,7 +274,7 @@
         //total = total + JSONmessage;
         ficMes.print(total);
         ficMes.close();
-        Log(4, "total stocké : \n" + total, "");
+        Log(4, "total stocke : \n" + total, "");
       }
     }
   }
@@ -284,14 +284,14 @@
     theme = "wifi    ";
     GenereJSON();
     if (JSONmessage == "") {
-      Log(2, "taille JSON supérieure à la taille maxi", "");
-      StripAffiche("mesure non envoyée");
+      Log(2, "taille JSON superieure a la taille maxi", "");
+      StripAffiche("mesure non envoyee");
     } else {
       int httpCode = EnvoiJSON(url);
       unsigned long dateReponseInt = millis()/100;
       if (httpCode != 201) { 
-        StripAffiche("mesure non envoyée");
-        Log(2, "retour serveur data différent de 201", "");
+        StripAffiche("mesure non envoyee");
+        Log(2, "retour serveur data different de 201", "");
         AjouteMesure();
       } else {
         RecalageDate(dateReponseInt);          // calcul de date en dixieme de seconde
@@ -324,7 +324,7 @@
         ficMes.print(mesureNonReprise);
         ficMes.close();
       }
-      Log(4, "total stocké : \n" + mesureNonReprise, "");
+      Log(4, "total stocke : \n" + mesureNonReprise, "");
     }
   }
 //-----------------------------------------------------------------------------------------------------------------------------  
@@ -370,7 +370,7 @@
     theme = "page web";
     if( ! server.hasArg("parametre") || server.arg("parametre") == NULL ) {
       server.send(400, "text/plain", "400: Invalid Request");
-      Log(2, "retour page web erroné", "");
+      Log(2, "retour page web errone", "");
       return;
     }
     // récupération des parametres

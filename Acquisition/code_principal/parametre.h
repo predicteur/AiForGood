@@ -74,7 +74,7 @@
   #ifdef BOARDSIGFOX
     #define LED_PIN           8           // affichage de l'état des mesures
   #else
-    #define LED_PIN           D8          // affichage de l'état des mesures (D8 par défaut, D1 sur ESP de test Philippe)
+    #define LED_PIN           D1          // affichage de l'état des mesures (D8 par défaut, D1 sur ESP de test Philippe)
     #define RXPIN             14          // laison capteur
     #define TXPIN             12          // laison capteur
   #endif
@@ -90,7 +90,7 @@
     #define VALEUR_MAX_PM   1000.0        // limite maxi autorisee pour les PM
     #define SEUIL_BON_PM    10.0          // seuil affichage LED pour les PM
     #define SEUIL_MOYEN_PM  20.0          // seuil affichage LED pour les PM
-    const int M_LED       = M_PM10;       // choix de la mesure à afficher
+    const int M_LED       = M_PM25;       // choix de la mesure à afficher
 
 //--------------------------------------------- parametres wifi
   #ifdef RESEAUWIFI

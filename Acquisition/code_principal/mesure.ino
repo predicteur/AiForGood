@@ -1,6 +1,6 @@
   
 //-----------------------------------------------------------------------------------------------------------------------------
-  void InitMesure(){
+  void InitMesureRessenti(){
     int nMes;
     for (nMes = 0; nMes < NB_MES; ++nMes) {
       mes[nMes].nombre = 0;
@@ -10,16 +10,11 @@
       mes[nMes].ecartType = 0;
       mes[nMes].tauxErreur = 0;
     }
-  }
-//-----------------------------------------------------------------------------------------------------------------------------
-  void InitRessenti(){
-    sensorVal1 = 0;
-    sensorVal2 = 0;
-    sensorVal3 = 0;
+    ressenti = "normal";
   }
 //-----------------------------------------------------------------------------------------------------------------------------
   void CreerMesure(){
-    InitMesure();
+    InitMesureRessenti();
     
     mes[M_PM25].nom = "PM25";
     mes[M_PM25].valeurMin = VALEUR_MIN_PM;

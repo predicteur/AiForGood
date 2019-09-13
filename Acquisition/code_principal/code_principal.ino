@@ -11,7 +11,6 @@
 //---------------------------------------------variables--------------------------------------------------------------------------------
   // variables générales
   String  modeFonctionnement= "normal";                           // 3 modes : "normal", "veille", "economie"
-  String  ressenti          = "normal";                           // 3 états : "bien", "normal", "pasbien"
   String  theme             = "Global  ";
   // variables affichage LED
   int     niveauAffichage   = NIVEAU_MOYEN;                       // voir les niveaux dans parametre.h
@@ -27,10 +26,7 @@
   //struct WorkingStateResult etatSDS;                                     // état de fonctionnement du capteur SDS
   Mesure  mes[NB_MES];                                            // tableau des informations liées à une mesure
   double  pm [NB_MES];                                            // mesure de PM2.5 et PM10
-  // variables ressenti
-  int     sensorVal1;                                             // 0 : rien, 1 : ok
-  int     sensorVal2;                                             // 0 : rien, 1 : moyen
-  int     sensorVal3;                                             // 0 : rien, 1 : pas bon
+  String  ressenti          = "normal";                           // 3 états : "bien", "normal", "pasbien"
 #ifdef RESEAUWIFI
   // variables envois wifi
   File    ficMes;                                                 // fichier de stockage temporaire des mesures non envoyées
@@ -127,7 +123,7 @@
     server.begin();
 #endif    
     StripAffiche("controleur démarré");
-    Log(0, "MODE_LOG = " + String(MODE_LOG), "");
+    Log(0, "controleur demarre en mode : MODE_LOG = ", String(MODE_LOG));
     
     //Blynk.begin("YF4nOYISynxxazzjW8aXMS1CrB3-H_B5", "Freebox-Lilith", "youwontforgetmyname");
   }
@@ -198,8 +194,7 @@
 #endif
           mesValeurLED = mes[M_LED].valeur;
           UpdateLed();                                        // affichge du niveau sur les LED
-          InitMesure();
-          InitRessenti();
+          InitMesureRessenti();
       }
 #ifdef COMPRESSION
       // boucle d'envoi des données groupées
