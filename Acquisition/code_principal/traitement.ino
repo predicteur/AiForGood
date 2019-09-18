@@ -2,6 +2,8 @@
   void Log(int type, String objet, String parametre) {
     String url = SERVEUR_AI4GOOD_LOG;
     String typeS = "infos---";
+    String JSONlog = "";
+    String JSONretour = "";
     if        (type == 1) {
       typeS = "warning-";
     } else if (type == 2) {
@@ -11,9 +13,11 @@
     } else if (type == 4) {
       typeS = "debug---";
     }
-    if (type < 3) {                                           // envoi des logs
+    if ((MODE_LOG == "normal" & type < 3) | (MODE_LOG == "verbose" & type < 4) | (MODE_LOG == "debug" & type <5)) {
+      Serial.println(theme + " : " + typeS + " " + objet + " -- " + parametre);
+    }
+    if ((type < 3) & (tokenExpire > 0)) {                                           // envoi des logs
       root.clear();
-      JSONmessage = "";
       root["equipement"]        = DEVICE_NAME;
       root["date"]              = CalculDate(millis()/100);
       root["type"]              = typeS;
@@ -21,19 +25,16 @@
       root["objet"]             = objet;
       root["parametre"]         = parametre;
       if (measureJson(root) < (TAILLE_MAX_JSON-10)) {
-        serializeJson(root, JSONmessage);
+        serializeJson(root, JSONlog);
       }
-      if (JSONmessage == "") {
+      if (JSONlog == "") {
         Log(2, "taille JSON superieure a la taille maxi", "");
       } else {
-        int httpCode = EnvoiJSON(url);
-        if ((httpCode != 201) & (objet != "retour serveur log different de 201")) {
-          Log(2, "retour serveur log different de 201", "");
+        JSONretour = EnvoiJSON(url, JSONlog);
+        if ((JSONretour == "") & (objet != "retour serveur log vide")) {
+          Log(2, "retour serveur log vide", "");
         }
       }
-    }
-    if ((MODE_LOG == "normal" & type < 3) | (MODE_LOG == "verbose" & type < 4) | (MODE_LOG == "debug" & type <5)) {
-      Serial.println(theme + " : " + typeS + " " + objet + " -- " + parametre);
     }
   }
 
@@ -75,27 +76,31 @@
   }
 //-----------------------------------------------------------------------------------------------------------------------------
   unsigned long StringToDate(String chaine){                        // millisecondes à partir du 1/8/2019 à 0h
-    int           annee     = chaine.substring(0,4).toInt();
-    int           mois      = chaine.substring(5,7).toInt();
-    int           jour      = chaine.substring(8,10).toInt();
-    int           heure     = chaine.substring(11,13).toInt();
-    int           minute    = chaine.substring(14,16).toInt();
-    int           seconde   = chaine.substring(17,19).toInt();
-    int           milli     = chaine.substring(20,21).toInt();
     unsigned long date      = 0;
-    //Serial.println(String(annee) + String(mois) + String(jour) + String(heure) + String(minute) + String(seconde) + String(milli));
-    if ((annee < 2019) || (annee > 2020) || (mois > 12) || (jour > 31) || (heure > 23) || (minute > 59) || (seconde > 59) || (milli > 9)) {
-      Log(2, "date serveur non exploitable", "");
+    if (chaine.length() > 15) {
+      int           annee     = chaine.substring(0,4).toInt();
+      int           mois      = chaine.substring(5,7).toInt();
+      int           jour      = chaine.substring(8,10).toInt();
+      int           heure     = chaine.substring(11,13).toInt();
+      int           minute    = chaine.substring(14,16).toInt();
+      int           seconde   = chaine.substring(17,19).toInt();
+      int           milli     = chaine.substring(20,21).toInt();
+      //Serial.println(String(annee) + String(mois) + String(jour) + String(heure) + String(minute) + String(seconde) + String(milli));
+      if ((annee < 2019) || (annee > 2020) || (mois > 12) || (jour > 31) || (heure > 23) || (minute > 59) || (seconde > 59) || (milli > 9)) {
+        Log(2, "date serveur non correcte ", "");
+      } else {
+        if (mois == 9)  { date += 31*24*60*60*10;}
+        if (mois == 10) { date += 61*24*60*60*10;}
+        if (mois == 11) { date += 92*24*60*60*10;}                      //à compléter pour les autres mois
+        date += jour*24*60*60*10;
+        date += heure*60*60*10;
+        date += minute*60*10;
+        date += seconde*10;
+        date += milli;    
+        //Serial.println( chaine + " StoD JHMS : " + String(jour) + String(heure) + String(minute) + String(seconde));
+      }
     } else {
-      if (mois == 9)  { date += 31*24*60*60*10;}
-      if (mois == 10) { date += 61*24*60*60*10;}
-      if (mois == 11) { date += 92*24*60*60*10;}                      //à compléter pour les autres mois
-      date += jour*24*60*60*10;
-      date += heure*60*60*10;
-      date += minute*60*10;
-      date += seconde*10;
-      date += milli;    
-      //Serial.println( chaine + " StoD JHMS : " + String(jour) + String(heure) + String(minute) + String(seconde));
+      Log(2, "date serveur non exploitable (taille < 15) : ", String(chaine.length()));
     }
     return date;
   }
@@ -110,7 +115,7 @@
   void StripAffiche(String modeStrip){
     int niveau = niveauAffichage; 
     Log(4, modeStrip, "");
-    if (niveauBatterieBas) { niveau = min(niveauAffichage, NIVEAU_FAIBLE); }     
+    if (niveauBatterieBas) { niveau = min(niveauAffichage, niveauFaible); }     
         strip.setBrightness(LUMINOSITE_FAIBLE * niveau / 100);
     if        (modeStrip == "démarrage") {     
         strip.setBrightness(LUMINOSITE_FAIBLE * niveau / 100);
@@ -123,9 +128,9 @@
         if ((millis() - timerVeille) > 6000) {                                                // clignotement
           timerVeille = millis();
         } else if ((millis() - timerVeille) > 4000){
-          strip.setBrightness(LUMINOSITE_FAIBLE * NIVEAU_FAIBLE / 100);
+          strip.setBrightness(LUMINOSITE_FAIBLE * niveauFaible / 100);
         } else {
-          strip.setBrightness(0);          
+          strip.setBrightness(NIVEAU_ETEINT);          
         }
     } else if (modeStrip == "mesure non envoyee") {
         strip.setPixelColor(0, BLEU[0], BLEU[1], BLEU[2]);
@@ -151,9 +156,10 @@
   }
 //-----------------------------------------------------------------------------------------------------------------------------
   void PrMesure(int level){
-    Log(level, " Nombre de mesures : " + String(mes[M_LED].nombre) + " Taux d erreur : " + String(mes[M_LED].tauxErreur), "");
-    Log(level, " Valeur : " + String(mes[M_LED].valeur) + " Ecart-type : " + String(mes[M_LED].ecartType),"");
-    Log(level, " Ressenti : " + ressenti + " Date : " + CalculDate(mes[M_LED].date), "");
+    theme = "capteur ";
+    Log(level, "   Nombre de mesures : " + String(mes[mesureLED].nombre) + " Taux d erreur : " + String(mes[mesureLED].tauxErreur), "");
+    Log(level, "   Valeur : " + String(mes[mesureLED].valeur) + " Ecart-type : " + String(mes[mesureLED].ecartType),"");
+    Log(level, "   Ressenti : " + ressenti + " Date : " + CalculDate(mes[mesureLED].date), "");
   }
 //-----------------------------------------------------------------------------------------------------------------------------
   void LireCapteur(){
@@ -176,14 +182,14 @@
       pm[M_PM10] = 100.0 * cos(3.14159 * millis());
 #endif
     }
-    Log(3, "mesure capteur : " + String(pm[M_LED]), "");
+    Log(3, "mesure capteur : " + String(pm[mesureLED]), "");
   }
 
 #ifdef RESEAUWIFI
 //-----------------------------------------------------------------------------------------------------------------------------
-  void GenereJSON() { 
+  String GenereJSON() { 
     root.clear();
-    JSONmessage = "";
+    String JSONmessage = "";
     root["device"]            = DEVICE_NAME;
     root["PM25"]              = String(mes[M_PM25].valeur, 2);
     root["PM10"]              = String(mes[M_PM10].valeur, 2);
@@ -199,65 +205,92 @@
     if (measureJson(root) < (TAILLE_MAX_JSON-10)) {
       serializeJson(root, JSONmessage);
     }
+    return JSONmessage;
   }
 //-----------------------------------------------------------------------------------------------------------------------------
-  int EnvoiJSON(String url) { 
+  void MajToken() { 
     int httpCode = 0;
-    theme = "wifi    ";
-    if ((WiFi.status() == WL_CONNECTED)&& !token_presence) {                                  
-      HTTPClient http;
-      http.begin(SERVEUR_AI4GOOD_LOGIN, SERVEUR_AI4GOOD_FINGER);
-      //http.addHeader("Content-Type", "application/json");                 
-      http.addHeader("Content-Type", "application/x-www-form-urlencoded"); //Specify content-type header
-      //  Serial.println("username=" + String(AI4GOOD_USERNAME) + "&password=" + String(AI4GOOD_PASSWORD));    
-      httpCode = http.POST("username=" + String(AI4GOOD_USERNAME) + "&password=" + String(AI4GOOD_PASSWORD));
-      payload = http.getString();                                  
-      http.end(); 
-      root.clear();
-      deserializeJson(root, payload);
-      Log(4, "payload token :" + payload, "");    
+    HTTPClient http;
+    http.begin(SERVEUR_AI4GOOD_LOGIN, SERVEUR_AI4GOOD_FINGER);
+    //http.addHeader("Content-Type", "application/json");                 
+    http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+    //  Serial.println("username=" + String(AI4GOOD_USERNAME) + "&password=" + String(AI4GOOD_PASSWORD));    
+    httpCode = http.POST("username=" + String(AI4GOOD_USERNAME) + "&password=" + String(AI4GOOD_PASSWORD));
+    String retourLogin = http.getString();                                  
+    http.end(); 
+    root.clear();
+    DeserializationError err = deserializeJson(root, retourLogin);
+    if (err) {
+      Log(2, "deserialisation reponse envoi login errone : " + String(err.c_str()), "");
+    } else {
+
+      // calcul de token
+      Log(4, "payload token :" + retourLogin, "");    
       String sensor = root["token"]; 
-      token = String("Bearer " + sensor);
-      token_presence = true;
-      Log(4, token, "");    
-      delay(10000);  
+      tokenValeur   = String("Bearer " + sensor);
+      String expDate = root["exp_date"];
+      tokenExpire   = StringToDate(expDate);
+      Log(4, "token (en sec) : " + String(tokenExpire/10) + tokenValeur, "");    
+
+      // calcul de date
+      unsigned long dateLogin = millis()/100;
+      const char* dateServeur = root["date"];
+      if (StringToDate(dateServeur) > 0) {
+        dateRef.dateExt = StringToDate(dateServeur);
+        dateRef.dateInt = dateLogin;
+        dateRef.decalage = dateRef.dateExt - dateRef.dateInt;
+      }
     }
+    delay(10000);  
+  }
+//-----------------------------------------------------------------------------------------------------------------------------
+  String EnvoiJSON(String url, String JSONmes) { 
+    String retour = "";
+    int httpCode = 0;
     if (WiFi.status() == WL_CONNECTED) {                                     
+      Log(4, "délai token restant en sec : " + String((tokenExpire - millis()/100 - dateRef.decalage)/10), "");
+      if (tokenExpire - millis()/100 - dateRef.decalage < 10*60*10) { MajToken(); }         // marge de 10 minutes avant expiration
       HTTPClient http;
       //http.begin("https://ai-for-good-api.herokuapp.com/send/data", "08 3B 71 72 02 43 6E CA ED 42 86 93 BA 7E DF 81 C4 BC 62 30‎"); // url pour envoyer les mesures
       http.begin(url, SERVEUR_AI4GOOD_FINGER);
-      http.addHeader("Authorization", token);
+      http.addHeader("Authorization", tokenValeur);
       http.addHeader("Content-Type", "application/json");             
-      httpCode = http.POST(JSONmessage);                       
-      payload  = http.getString();                                
+      httpCode = http.POST(JSONmes);                       
+      retour  = http.getString();                                
       http.end(); 
-      Log(4, "JSONmessage : " + url + "  " + JSONmessage, "" );
-      Log(4, "payload     : " + url + "  " + payload, "");
+      if (httpCode == 401 | httpCode == 403) {
+        tokenExpire = 0;
+        Log(1, "token absent, expire ou non valide ", String(httpCode));
+        MajToken();
+      }
+      Log(4, "JSONmes DATA : " + url + "  " + JSONmes, "" );
+      Log(4, "retour DATA  : " + url + "  " + retour, "");
+      Log(4, "httpCode     : " + String(httpCode) + " " + url, "");
     } else {
       Log(2, "wifi deconnecte", "");
-    }
-    Log(4, "httpCode : " + String(httpCode) + " " + url, "");
-    return httpCode;    
+    } 
+    return retour;    
   }
 //-----------------------------------------------------------------------------------------------------------------------------
-  void RecalageDate(unsigned long dateReponseInt) {               // lecture de la date serveur pour recalage
+  /*void RecalageDate(unsigned long dateReponseInt, String JSONdata) {               // lecture de la date serveur pour recalage
     theme = "wifi    ";    
     root.clear();
-    DeserializationError err = deserializeJson(root, payload);
+    Log(4, "JSONdata recalage : " + JSONdata, "");
+    DeserializationError err = deserializeJson(root, JSONdata);
     if (err) {
-      Log(2, "retour serveur data errone", "");
+      Log(2, "deserialisation reponse envoi data errone : " + String(err.c_str()), "");
     } else {
       const char* dateServeur = root["date"];
-      //Serial.println("av : " + CalculDate(dateReponseInt) +" ap : " + dateServeur);
+      Log(4, "av : " + CalculDate(dateReponseInt) +" ap : " + dateServeur, "");
       if (StringToDate(dateServeur) > 0) {
         dateRef.dateExt = StringToDate(dateServeur);
         dateRef.dateInt = dateReponseInt;
         dateRef.decalage = dateRef.dateExt - dateRef.dateInt;
       }
     }
-  }
+  }*/
 //-----------------------------------------------------------------------------------------------------------------------------
-  void AjouteMesure() {                                  // Stockage des donnnées non envoyées
+  void AjouteMesure(String JSONmesure) {                                  // Stockage des donnnées non envoyées
     theme = "esp     ";
     StripAffiche("mesure non envoyee");
     ficMes = SPIFFS.open(FIC_BUF, "r");
@@ -270,31 +303,33 @@
       if (!ficMes) {
         Log(2, "ouverture fichier impossible", "");
       } else {
-        total = total + "\n" + JSONmessage;
-        //total = total + JSONmessage;
+        total = total + "\n" + JSONmesure;
+        //total = total + JSONmesure;
         ficMes.print(total);
         ficMes.close();
-        Log(4, "total stocke : \n" + total, "");
+        Log(3, "total stocke apres ajout : \n" + total, "");
       }
     }
   }
 //-----------------------------------------------------------------------------------------------------------------------------
   void EnvoiWifi() { 
     String url = SERVEUR_AI4GOOD_DATA;
+    String retourData = "";
     theme = "wifi    ";
-    GenereJSON();
-    if (JSONmessage == "") {
+    String JSONdata = GenereJSON();
+    if (JSONdata == "") {
       Log(2, "taille JSON superieure a la taille maxi", "");
       StripAffiche("mesure non envoyee");
     } else {
-      int httpCode = EnvoiJSON(url);
-      unsigned long dateReponseInt = millis()/100;
-      if (httpCode != 201) { 
+      retourData = EnvoiJSON(url, JSONdata);
+      Log(4, "retour data avant envoi : " + retourData, "");
+      //unsigned long dateReponseInt = millis()/100;
+      if (retourData == "") { 
         StripAffiche("mesure non envoyee");
-        Log(2, "retour serveur data different de 201", "");
-        AjouteMesure();
-      } else {
-        RecalageDate(dateReponseInt);          // calcul de date en dixieme de seconde
+        Log(2, "retour serveur data vide ", "");
+        AjouteMesure(JSONdata);
+      //} else {
+      //  RecalageDate(dateReponseInt, retourData);          // calcul de date en dixieme de seconde
       }
     }
   }
@@ -302,17 +337,19 @@
   void RepriseEnvoiWifi() {
     String url = SERVEUR_AI4GOOD_DATA;
     String mesureNonReprise = "";
+    String JSONdata = "";
+    String retourData = "";
     theme = "wifi    ";
     ficMes = SPIFFS.open(FIC_BUF, "r");
     if (!ficMes) {
       Log(2, "ouverture fichier impossible", "");
     } else {
       while(ficMes.available()>5) {    
-        JSONmessage = ficMes.readStringUntil('\n');
-        if ((JSONmessage.length() > 10) && (JSONmessage.length() < TAILLE_MAX_JSON))  {
-          int httpCode = EnvoiJSON(url);
-          if (httpCode != 201) {
-            mesureNonReprise += ("\n" + JSONmessage);
+        JSONdata = ficMes.readStringUntil('\n');
+        if ((JSONdata.length() > 10) && (JSONdata.length() < TAILLE_MAX_JSON))  {
+          retourData = EnvoiJSON(url, JSONdata);
+          if (retourData == "") {
+            mesureNonReprise += ("\n" + JSONdata);
           }
         }
       }
@@ -324,7 +361,9 @@
         ficMes.print(mesureNonReprise);
         ficMes.close();
       }
-      Log(4, "total stocke : \n" + mesureNonReprise, "");
+      if (mesureNonReprise.length() > 10) {
+        Log(3, "total stocke apres reprise : \n" + mesureNonReprise, "");
+      }
     }
   }
 //-----------------------------------------------------------------------------------------------------------------------------  
@@ -335,16 +374,16 @@
       http.begin(SERVEUR_AI4GOOD_VAR);
       http.addHeader("Content-Type", "application/json");                 
       int httpCode = http.GET();
-      payload = http.getString();                                  
+      String parametres = http.getString();                                  
       http.end();        
-      Log(4, "payload ajustement  : " + payload, "");
-      if ((payload == "")|(httpCode != 200)) { 
+      Log(4, "ajustement des parametres  : " + parametres, "");
+      if ((parametres == "")|(httpCode != 200)|(httpCode != 201)) { 
         Log(2, "lecture des parametres indisponible", ""); 
       } else {
-        boolean erreur = ActualisationParametres(payload);    
+        boolean erreur = ActualisationParametres(parametres);    
       }
     } else {
-      Log(2, "wifi déconnecté", "");
+      Log(2, "wifi déconnecte", "");
     }
   }
 
@@ -356,12 +395,66 @@
     if (err) {
       Log(2, "impossible de decoder les parametres", "");
     } else {
-      const char* modeF = root["modeFonctionnement"];
-      if ((modeF != "") & (modeF != nullptr)) { modeFonctionnement = String(modeF); }
-      const char* ressent = root["ressenti"];
-      if ((ressent != "") & (ressent != nullptr)) { ressenti = String(ressent); }
-      const int mesureLED = root["MESURE_LED"];
-      Log(4,"modefonct + ressenti + mesureLED : " + modeFonctionnement + " " + ressenti + " " + mesureLED, "");
+      
+      const char* pModeFonctionnement = root["modeFonctionnement"];
+      if ((pModeFonctionnement != nullptr) & ((pModeFonctionnement == MODE_ECO)
+        | (pModeFonctionnement == MODE_NORMAL) | (pModeFonctionnement == MODE_FORT)
+        |  (pModeFonctionnement == MODE_VEILLE))) { 
+        if (String(pModeFonctionnement) != modeFonctionnement) {
+          Log(0,"nouveau mode de fonctionnement : ", String(pModeFonctionnement)); }
+        modeFonctionnement = String(pModeFonctionnement); 
+      } else if (pModeFonctionnement != "null") {
+        Log(2,"mode de fonctionnement incorrect : ", "");        
+      }
+      const char* pRessenti = root["ressenti"];
+      if ((pRessenti != nullptr) & ((pRessenti == RESSENTI_BIEN)
+        | (pRessenti == RESSENTI_NORMAL) | (pRessenti == RESSENTI_PASBIEN))) { 
+        if (String(pRessenti) != ressenti) {
+          Log(0,"nouveau ressenti : ", String(pRessenti)); }
+        ressenti = String(pRessenti); 
+      } else if (pRessenti != "null")  {
+        Log(2,"ressenti incorrect : ", "");        
+      }
+      const int pMesureLED = root["MESURE_LED"];
+      if ((pMesureLED > -1) & (pMesureLED < NB_MES)) {
+        if (pMesureLED != mesureLED) {
+          Log(0,"nouvelle mesure a afficher sur la LED : ", String(pMesureLED)); }
+        mesureLED = pMesureLED;
+      } else {
+        Log(2,"mesure a afficher sur la LED incorrecte : ", "");
+      }
+      const int pTempsCycle = root["TEMPS_CYCLE"];
+      if ((pTempsCycle > 0) & (pTempsCycle < 3600000)) {
+        if (pTempsCycle != tempsCycle) {
+          Log(0,"nouveau temps de cycle en ms : ", String(pTempsCycle)); }
+        tempsCycle = pTempsCycle;
+      } else if (pTempsCycle != 0) {
+        Log(2,"temps de cycle incorrect : ", "");
+      }
+      const int pNiveauFort = root["NIVEAU_FORT"];
+      if ((pNiveauFort > 0) & (pNiveauFort < 101)) {
+        if (pNiveauFort != niveauFort) {
+          Log(0,"nouveau niveau fort : ", String(pNiveauFort)); }
+        niveauFort = pNiveauFort;
+      } else if (pNiveauFort != 0) {
+        Log(2,"niveau fort incorrect : ", "");
+      }
+      const int pNiveauMoyen = root["NIVEAU_MOYEN"];
+      if ((pNiveauMoyen > 0) & (pNiveauMoyen < 101)) {
+        if (pNiveauMoyen != niveauMoyen) {
+          Log(0,"nouveau niveau moyen : ", String(pNiveauMoyen)); }
+        niveauMoyen = pNiveauMoyen;
+      } else if (pNiveauMoyen != 0) {
+        Log(2,"niveau moyen incorrect : ", "");
+      }
+      const int pNiveauFaible = root["NIVEAU_FAIBLE"];
+      if ((pNiveauFaible > 0) & (pNiveauFaible < 101)) {
+        if (pNiveauFaible != niveauFaible) {
+          Log(0,"nouveau niveau faible : ", String(pNiveauFaible)); }
+        niveauFaible = pNiveauFaible;
+      } else if (pNiveauFaible != 0) {
+        Log(2,"niveau faible incorrect : ", "");
+      }
     }
     return err;
   }  
@@ -404,7 +497,7 @@ void GroupeMesure() {
 //-----------------------------------------------------------------------------------------------------------------------------
   void GenereGroupe() {
     for (int i = 0; i < TAILLE_ECH; ++i) {
-      y0init[i] = mesEnvoi[M_LED][i].valeur;
+      y0init[i] = mesEnvoi[mesureLED][i].valeur;
     }
     for (int i = 0; i < NB_MES; ++i) {
       for (int j = 0; j < TAILLE_ECH; ++j) {
@@ -435,7 +528,7 @@ void GroupeMesure() {
       Log(4, "ID  = " + SigFox.ID() + "  PAC = " + SigFox.PAC(), "");
     }
     if (oneshot || test) {
-      Log(4, "mes[M_LED].valeur : " + String(mes[M_LED].valeur), "");
+      Log(4, "mes[mesureLED].valeur : " + String(mes[mesureLED].valeur), "");
       Log(4, "payload: " + String(payload.msg1) + " " + String(payload.msg2) + " " + String(payload.msg3), "");
     }
     if (!test) {

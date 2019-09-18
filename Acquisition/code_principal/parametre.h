@@ -38,7 +38,14 @@
     #define   M_PM25    0                     // indice de la mesure PM25 dans le tableau des mesures
     #define   M_PM10    1                     // indice de la mesure PM10 dans le tableau des mesures
     #define   FIC_BUF   "/buffer.txt"         // fichier de stockage des mesures non encore envoyées     
-    #define   TAILLE_MAX_JSON   400           // taille maxi des fichiers JSON
+    #define   TAILLE_MAX_JSON   500           // taille maxi des fichiers JSON
+    #define   MODE_ECO          "economie"    // mode de mesure
+    #define   MODE_NORMAL       "normal"      // mode de mesure
+    #define   MODE_FORT         "fort"        // mode de mesure
+    #define   MODE_VEILLE       "veille"      // mode de non-mesure
+    #define   RESSENTI_BIEN     "bien"        // valeur de ressenti
+    #define   RESSENTI_NORMAL   "normal"      // valeur de ressenti
+    #define   RESSENTI_PASBIEN  "pasbien"     // valeur de ressenti
 
 //--------------------------------------------- parametres Sigfox --------------------------------
   #ifdef BOARDSIGFOX
@@ -55,9 +62,9 @@
     const int     LUMINOSITE_FORTE  = 250;   // maxi 255
     const int     LUMINOSITE_FAIBLE = 50;
     const int     NIVEAU_FORT       = 100;                    // niveau variable de 0 à 100
-    const int     NIVEAU_MOYEN      = 25;
-    const int     NIVEAU_FAIBLE     = 10;                     // niveau utilisé pour le niveu bas de la batterie
-    const int     NIVEAU_ETEINT     = 0;
+    const int     NIVEAU_MOYEN      = 25;                     // niveau variable de 0 à 100 (utilisé en m
+    const int     NIVEAU_FAIBLE     = 10;                     // niveau utilisé pour le niveau bas de la batterie et en mode économie)
+    const int     NIVEAU_ETEINT     = 0;                      // niveau variable de 0 à 100 (utilisé en mode veille)
     
 //--------------------------------------------- paramètres de l'envoi --------------------------------
   #ifdef BOARDSIGFOX
@@ -72,15 +79,15 @@
 */
 //--------------------------------------------- configuration matérielle / logicielle
   #ifdef BOARDSIGFOX
-    #define LED_PIN           8           // affichage de l'état des mesures
+    #define LED_PIN           8           // affichage de l'état des mesures pour Sigfox
   #else
-    #define LED_PIN           D1          // affichage de l'état des mesures (D8 par défaut, D1 sur ESP de test Philippe)
-    #define RXPIN             14          // laison capteur
-    #define TXPIN             12          // laison capteur
+    #define LED_PIN           D1          // affichage de l'état des mesures pour ESP (D8 pour les sacs, D1 sur ESP de test Philippe)
+    #define RXPIN             14          // laison série capteur
+    #define TXPIN             12          // laison série capteur
   #endif
     #define LED_COUNT         1           // nombre de LED dans le ruban
     #define MEM_IDENTIFIANT   1           // 0 : pas de mémorisation des accès WiFi, 1 : mémorisation  
-    #define MODE_LOG          "verbose"    // "normal" : infos(0), warning(1), erreur(2), "verbose" : detail(3), "debug" : debug(4)
+    #define MODE_LOG          "debug"    // "normal" : infos(0), warning(1), erreur(2), "verbose" : detail(3), "debug" : debug(4)
     const char *DEVICE_NAME = "sensor9";  // nom du device a documenter
 
 //--------------------------------------------- configuration mesures

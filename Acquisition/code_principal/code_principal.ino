@@ -10,14 +10,20 @@
 #include "parametre.h"                                            // Déclaration de constantes, librairies et de structures de données
 //---------------------------------------------variables--------------------------------------------------------------------------------
   // variables générales
-  String  modeFonctionnement= "normal";                           // 3 modes : "normal", "veille", "economie"
-  String  theme             = "Global  ";
+  String  theme             = "Global  ";                         // précision utilisée pour les logs
+  String  modeFonctionnement= MODE_NORMAL;                        // voir valeur initiale dans parametre.h
+  int     tempsCycle        = TEMPS_CYCLE;                        // voir valeur initiale dans parametre.h
   // variables affichage LED
+  int     mesureLED         = M_LED;                              // voir valeur initiale dans parametre.h
   int     niveauAffichage   = NIVEAU_MOYEN;                       // voir les niveaux dans parametre.h
+  int     niveauFort        = NIVEAU_FORT;                        // voir valeur initiale dans parametre.h
+  int     niveauMoyen       = NIVEAU_MOYEN;                       // voir valeur initiale dans parametre.h
+  int     niveauFaible      = NIVEAU_FAIBLE;                      // voir valeur initiale dans parametre.h
   float   mesValeurLED      = 0;                                  // valeur issue des mesures à afficher sur la LED
   boolean niveauBatterieBas = false;                              // utilisé pour l'affichage LED
   // variables périodicité
-  float   temps_ref_mesure  = 0;                                  // compteur de temps intermédiaire de 0 à TEMPS_CYCLE/NB_MESURE
+  float   temps_ref_mesure  = 0;                                  // compteur de temps intermédiaire de 0 à tempsCycle/NB_MESURE pour les mesures
+  float   temps_ref_parametre = 0;                                // compteur de temps intermédiaire de 0 à tempsCycle/NB_MESURE pour les paramètres
   unsigned long timerVeille = 0;                                  // compteur de temps de clignotement en veille
   int     nbMesureGroupe    = 0;                                  // compteur de mesures pour envoi groupé Sigfox de 0 à TAILLE_ECH
   int     nbMesureElem      = 0;                                  // compteur de mesures élémentaires dans le temps de cycle pour calcul du niveau de qualité
@@ -30,11 +36,12 @@
 #ifdef RESEAUWIFI
   // variables envois wifi
   File    ficMes;                                                 // fichier de stockage temporaire des mesures non envoyées
-  String  JSONmessage;                                            // message JSON envoyé au serveur
-  String  payload;                                                // message JSON retourné par le serveur 
+  //String  JSONmessage;                                            // message JSON envoyé au serveur
+  //String  payload;                                                // message JSON retourné par le serveur 
   StaticJsonDocument<TAILLE_MAX_JSON> root;                       // taille à ajuster en fonction du nombre de caractères à envoyer
-  String  token;
-  boolean token_presence = false;
+  String        tokenValeur;
+  boolean       tokenPresence = false;
+  unsigned long tokenExpire = 0;
 #endif
 #ifdef COMPRESSION
   // variables series de mesures
@@ -101,10 +108,11 @@
     } else {
       Log(3, "SPIFFS Mount succesfull", "");
     }
+    /*// vidage du fichier des mesures en attente d'envoi (doit être en commentaires)
     ficMes = SPIFFS.open(FIC_BUF, "w");                           // pour vider le fichier des mesures en attente
     ficMes.println("vide");                                       // pour vider le fichier des mesures en attente
     ficMes.close();                                               // pour vider le fichier des mesures en attente
-
+    */
     // initialisation Serveur WiFi
     WiFi.mode(WIFI_AP_STA);                                       // mode mixte server et client
     WiFiManager wifiManager;                                      // WiFi option non fixe
@@ -115,7 +123,10 @@
     theme = "wifi    ";
     Log(3, "Connected to : " + WiFi.SSID(), WiFi.psk());
     Log(0, "IP address : ", WiFi.localIP().toString());
-  
+
+    // initialisation token et date
+    MajToken();
+    
     // serveur web
     server.on("/mesures.json", HTTP_GET, SendMesureWeb);
     server.serveStatic("/", SPIFFS, "/index.html");
@@ -133,7 +144,10 @@
 #ifdef RESEAUWIFI
     theme = "wifi    ";
     // mise à jour des paramètres(traitement des données du serveur)
-    AjustementParametres();
+    if ( (millis() - temps_ref_parametre) >= float(tempsCycle)/float(NB_MESURE) ) {
+      temps_ref_parametre = millis();
+      AjustementParametres();
+    }
     // mise à jour des paramètres(traitement des requetes des pages web)
     WiFiClient client;
     server.handleClient();
@@ -152,14 +166,14 @@
       }*/
       theme = "global  ";
       if (modeFonctionnement == "economie") {
-          niveauAffichage = NIVEAU_FAIBLE;
+          niveauAffichage = niveauFaible;
       } else if (modeFonctionnement == "renforce"){
-          niveauAffichage = NIVEAU_FORT;        
+          niveauAffichage = niveauFort;        
       } else {
-          niveauAffichage = NIVEAU_MOYEN;        
+          niveauAffichage = niveauMoyen;        
       }
       // boucle de réalisation des mesures intermédiaires
-      if ( (millis() - temps_ref_mesure) >= float(TEMPS_CYCLE)/float(NB_MESURE) ) {
+      if ( (millis() - temps_ref_mesure) >= float(tempsCycle)/float(NB_MESURE) ) {
           theme = "mesure  ";
           temps_ref_mesure = millis();
           StripAffiche("début mesure");
@@ -192,7 +206,7 @@
 #ifdef COMPRESSION
           nbMesureGroupe ++;
 #endif
-          mesValeurLED = mes[M_LED].valeur;
+          mesValeurLED = mes[mesureLED].valeur;
           UpdateLed();                                        // affichge du niveau sur les LED
           InitMesureRessenti();
       }
