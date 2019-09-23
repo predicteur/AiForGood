@@ -1,0 +1,170 @@
+﻿:root {
+    --fond-color: rgb(36,56,70);
+    --un-color: rgb(47,117,186);
+    --zero-color: rgb(73, 192, 225);
+    --deux-color: rgb(234,93,14);
+}
+@media all and(orientation:landscape)
+{
+    body {
+        background-color: var(--fond-color); /*midnightblue; #b6ff00*/
+        font-family: Arial, Helvetica, Sans-Serif;
+        font-size: xx-large;
+        font-weight: bold;
+        Color: white;
+        /*background: url("ecole.png") fixed no-repeat top left ;  */
+        background-attachment: fixed; /* Le fond restera fixe */
+        background-repeat: no-repeat; /* Le fond ne sera pas répété */
+        background-position: top left; /* Le fond sera placé en haut à droite */
+        display: flex;
+        flex-direction: column;
+        flex-wrap: wrap;
+        justify-content: flex-start;
+        width: auto;
+        max-width: 450px;
+        max-height: 400px;
+    }
+}
+body {
+    background-color: var(--fond-color); /*midnightblue; #b6ff00*/
+    font-family: Arial, Helvetica, Sans-Serif;
+    font-size: xx-large;
+    font-weight: bold;
+    Color: white;
+    /*background: url("ecole.png") fixed no-repeat top left ;  */
+    background-attachment: fixed; /* Le fond restera fixe */
+    background-repeat: no-repeat; /* Le fond ne sera pas répété */
+    background-position: top left; /* Le fond sera placé en haut à droite */
+    display: flex;
+    flex-direction: column;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    width: auto;
+    max-width: 450px;
+    max-height: 400px;
+}
+a {
+    color: yellow;
+    font-size: small;
+}
+h1 {
+    font-size: larger;
+}
+h3 {
+    font-size: x-large;
+}
+div {
+    font-size: large;
+    border-spacing: 40px 10px;
+    border-collapse: separate;
+    margin-left: 10px;
+    margin-right: 10px;
+    flex: auto;
+    flex-direction: row;
+    justify-content: center;
+    width: auto;
+    max-height: 50px;
+}
+table {
+    width: auto;
+    border-spacing: 40px 10px;
+    border-collapse: separate;
+}
+label{
+    height: 80px;
+    width: 150px;
+    font-size: large;
+}
+form {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    width: auto;
+}
+tr {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: space-around;
+    width: auto;
+    margin-top: 0px;
+}
+td {
+    height: 70px;
+    width: 80px;
+    background-color: var(--fond-color);
+    font-size :large;
+    text-align: center;
+    text-justify: inter-word;
+    padding-top: 10px;
+    margin-bottom : 10px;
+    margin-right : 20px;
+    vertical-align: middle;
+    border: 3px white solid;
+    border-radius: 50px
+}
+input {
+    font-size: large;
+    color: white;
+    vertical-align: middle;
+    height: 40px;
+    width: 100px;
+    background-color: green;
+    border: 3px white solid;
+    border-radius: 50px
+}
+.bouton {
+    margin-left: 100px;
+}
+.option {
+    height: 80px;
+    width: 120px;
+}
+.situation {
+    height: 50px;
+    border-width: 1;
+}
+.petit {
+    font-size: x-small;
+}
+.polluant {
+    margin-top: 20px;
+    background-color: white;
+    color: var(--fond-color); /*midnightblue;*/
+    font-weight: bold;
+    font-size: x-large;
+}
+.valeur {
+    margin-top: 20px;
+    background-color: var(--fond-color); /*midnightblue;*/
+    font-weight: bold;
+    font-size: xx-large;
+}
+.indicateur {
+    margin-top: 20px;
+    background-color: var(--zero-color); /*cadetblue;*/
+    color: var(--zero-color);
+}
+.unite {
+    font-size :x-small;
+}
+.choix {
+    width: 150px;
+    height: 10px;
+    text-align: left;
+    text-justify: inter-word;
+    vertical-align: middle;
+    border: 0px var(--fond-color) black;
+    border-radius: 0px
+}
+.saisie {
+    height: 20px;
+    width: 100px;
+    background-color: rgb(58, 53, 141);
+    border: 0px white solid;
+    border-radius: 0px;
+    font-size :medium;
+    text-align: left;
+    text-justify: inter-word;
+    vertical-align: middle;
+}

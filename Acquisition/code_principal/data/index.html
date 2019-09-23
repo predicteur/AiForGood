@@ -1,97 +1,104 @@
-﻿<html lang='fr'>
+﻿<html lang=fr-FR>
 <head>
-    <meta http-equiv='refresh' name='viewport' content='width=device-width'/>
-    <link rel='stylesheet' href='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css'>
-    <script src='https://ajax.googleapis.com/ajax/libs/jquery/3.1.1/jquery.min.js'></script>
-    <script src='https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js'></script>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8" />
+    <title>AI FOR GOOD - Mesures - Paramètres</title>
+    <link rel="stylesheet" href="StyleIndex.css" />
 </head>
-<body style='background:url('https://zupimages.net/up/19/29/jblq.jpg') no-repeat center/100% 100%;'>
-    <div class='container container-fluid px-5' style='min-height: 100%;'>
-        <div class='row'>
-            <div class='col-md-12'>
-                <h3 class='text-center'>AlabintheAIR</h3>
-                <br /><br />
-                <table class='table text-center'>
-                    <tbody>
-                        <tr>
-                            <td>PM2.5  </td>
-                            <td id="pm25">10</td>
-                        </tr>
-                        <tr class='table-active'>
-                            <td>PM10   </td>
-                            <td id="pm10">20</td>
-                        </tr>
-                    </tbody>
-                </table>
-                <h3 class='text-center'>My FEELING</h3>
-                <br /><br />
-                      <div class='row'>
-                          <div class='col-md-12'>
-                              <a id="BIEN" class='btn btn-success btn-lg btn-block' style='padding-top:1%;padding-bottom:1%;' href="#">FRESH AIR</a>
-                              <br /><br />
-                              <a id="NORMAL" class='btn btn-primary btn-lg btn-block' style='padding-top:1%;padding-bottom:1%;' href="#">COMMON AIR</a>
-                              <br /><br />
-                              <a id="PASBIEN" class='btn btn-danger btn-lg btn-block' style='padding-top:1%;padding-bottom:1%;' href="#">STALE AIR</a>
-                              <br />
-                          </div>
-                      </div>
-                <h3 class='text-center'>Paramètres</h3>
-                <br /><br />
-                <div class='row'>
-                    <div class="btn-group">
-                        <button type="button" class="btn btn-primary dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                            mode de fonctionnement
-                        </button>
-                        <div class="dropdown-menu">
-                            <a id="modeNormal" class="dropdown-item" href="#">Normal</a>
-                            <div class="dropdown-divider"></div>
-                            <a id="modeVeille" class="dropdown-item" href="#">Veille</a>
-                            <div class="dropdown-divider"></div>
-                            <a id="modeEconomie" class="dropdown-item" href="#">Economie</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+<body>
+    <table class="tableau">
+        <caption><h3>Mes mesures <span class="petit"> (données du capteur)</span></h3></caption>
+        <tr id="0">
+            <td class="polluant">PM10</td>
+            <td class="valeur">
+                <span id="PM10" class="nombre">55</span>
+                <span class="unite">ppm</span></td>
+            <td class="indicateur" style="background-color: rgb(234, 93, 14);"></td></tr>
+        <tr id="1">
+            <td class="polluant">PM25</td>
+            <td class="valeur">
+                <span id="PM25" class="nombre">44</span>
+                <span class="unite">ppm</span></td>
+            <td class="indicateur" style="background-color: rgb(234, 93, 14);"></td></tr>
+    </table>
+    <form>
+        <table class="parametre">
+            <caption><h3>Mes paramètres</h3></caption>
+                <tr>
+                <td class="choix"><label   for="mesureLed">Mesure LED :</label></td>
+                <td class="choix"><select name="mesureLed" id="mesureLed">
+                    <option value="0" selected>PM10</option>
+                    <option value="1">PM25</option></select></td>
+            </tr><tr>
+                <td class="choix"><label   for="ressenti">Ressenti :</label></td>
+                <td class="choix"><select name="ressenti" id="ressenti">
+                    <option value="bien" selected>Bien</option>
+                    <option value="normal">Normal</option>
+                    <option value="pasbien">Pasbien</option></select></td>
+            </tr><tr>
+                <td class="choix"><label   for="modeFonc">Mode de fonct. :</label></td>
+                <td class="choix"><select name="modeFonc" id="modeFonc">
+                    <option value="economie" >Economie</option>
+                    <option value="normal" selected>Normal</option>
+                    <option value="fort">Fort</option>
+                    <option value="veille">Veille</option></select> </td>
+            </tr><tr>
+                <td class="choix"><label   for="modeLog">Mode de log :</label></td>
+                <td class="choix"><select name="modeLog" id="modeLog">
+                    <option value="normal" selected>Normal</option>
+                    <option value="verbose">Verbose</option>
+                    <option value="debug">Debug</option></select> </td>
+            </tr><tr>
+                <td class="choix"><label for="tempsCycle">Temps de cycle :</label>
+                <td class="choix"><input class="saisie" type="text"  name="tempsCycle" id="tempsCycle" value="20000" required></td>
+            </tr><tr>
+                <td class="choix"><label for="niveauFort">Niveau Fort :</label>
+                <td class="choix"><input class="saisie" type="text"  name="niveauFort" id="niveauFort" value="100" required></td>
+            </tr><tr>
+                <td class="choix"><label for="niveauMoyen">Niveau Moyen :</label>
+                <td class="choix"><input class="saisie" type="text"  name="niveauMoyen" id="niveauMoyen" value="25" required></td>
+            </tr><tr>
+                <td class="choix"><label for="niveauFaible">Niveau Faible :</label>
+                <td class="choix"><input class="saisie" type="text"  name="niveauFaible" id="niveauFaible" value="10" required></td></tr>
+        </table><br>
+        <div><input type="submit" class="bouton" value="Envoi"></div>
+    </form>
     <script>
-        var bien        = document.getElementById("BIEN");
-        var normal      = document.getElementById("NORMAL");
-        var pasbien     = document.getElementById("PASBIEN");
-        var pm25        = document.getElementById("pm25");
-        var pm10        = document.getElementById("pm10");
-        var modeVeille  = document.getElementById("modeVeille");
-        var modeEconomie= document.getElementById("modeEconomie");
-        var modeNormal  = document.getElementById("modeNormal");
-        var modeFonc    = "";
-        var ressenti    = "";
-
-        function updateData(lien="/mesures.json") {
+        var form        = document.querySelector("form");
+        var pm25        = document.getElementById("PM25");
+        var pm10        = document.getElementById("PM10");
+        //var fort        = parseInt(document.getElementById("niveauFort"));
+        //var fort2        = parseInt(form.elements.niveauFort.value);
+        //console.log(fort2);
+        var parametre   = { MESURE_LED: "0", RESSENTI:"bien", MODE_FONCTIONNEMENT:"normal", MODE_LOG:"normal", TEMPS_CYCLE:20000, NIVEAU_FORT:100, NIVEAU_MOYEN:25, NIVEAU_FAIBLE:10 };
+        var niveau      = document.getElementById("0").getElementsByClassName("indicateur");
+        
+        function updateData() {
             var xhr = new XMLHttpRequest();
-            var parametre = { modeFonctionnement: "", ressenti:""};
             xhr.onreadystatechange = function() {
-                if ((this.readyState == 4) & (this.status == 200 || this.status === 0) & (this.responseText != null)) {                             // Indicateur de l'avancement de l'appel AJAX == 4 => Données complètement accessibles
+                if ((this.readyState == 4) & (this.status == 200 || this.status === 0) & (this.responseText != null)) { // avancement AJAX == 4 => Données complètement accessibles
                     var response = JSON.parse(this.responseText);
                     pm25.textContent = response.PM25;
                     pm10.textContent = response.PM10;
                 }
             }
-            parametre.modeFonctionnement = modeFonc;
-            parametre.ressenti = ressenti;
-            lien = lien + "?parametre=" + JSON.stringify(parametre);
+            lien = "/mesures.json" + "?parametre=" + JSON.stringify(parametre);
+            console.log(lien);
             xhr.open("GET",lien, true);        
             xhr.send();
         }
-        bien.addEventListener           ('click', function() { console.log("click sur Bien");           ressenti = "bien";      });
-        normal.addEventListener         ('click', function() { console.log("click sur normal");         ressenti = "normal";    });
-        pasbien.addEventListener        ('click', function() { console.log("click sur pasbien");        ressenti = "pasbien";   });
-        modeVeille.addEventListener     ('click', function() { console.log("click sur modeVeille");     modeFonc = "veille";    });
-        modeNormal.addEventListener     ('click', function() { console.log("click sur modeNormal");     modeFonc = "normal";    });
-        modeEconomie.addEventListener   ('click', function() { console.log("click sur modeEconomie");   modeFonc = "economie";  });
+        form.addEventListener("submit", function (e) {
+            parametre.MESURE_LED            = parseInt(form.elements.mesureLed.value);
+            parametre.RESSENTI              = form.elements.ressenti.value;
+            parametre.MODE_FONCTIONNEMENT   = form.elements.modeFonc.value;
+            parametre.MODE_LOG              = form.elements.modeLog.value;
+            parametre.TEMPS_CYCLE           = parseInt(form.elements.tempsCycle.value);
+            parametre.NIVEAU_FORT           = parseInt(form.elements.niveauFort.value);
+            parametre.NIVEAU_MOYEN          = parseInt(form.elements.niveauMoyen.value);
+            parametre.NIVEAU_FAIBLE         = parseInt(form.elements.niveauFaible.value);
+            //alert(parametre.NIVEAU_FORT);
+            e.preventDefault(); // Annulation de l'envoi des données
+        });
         window.setInterval(updateData, 10000);
-
     </script>
 </body>
 </html>
-
-

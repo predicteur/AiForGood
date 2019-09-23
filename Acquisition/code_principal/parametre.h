@@ -1,16 +1,40 @@
+/* 
+  Paramètres à vérifier avant compilation :
+  
+    #define SDS               true       (si SDS présent)
+    #define LED_PIN           D8         (si on est sur un sac)
+    #define MODE_LOG          "normal"   (si on est sur un fonctionnement hors test)
+    const char *DEVICE_NAME = "sensorxxx";  
+*/
+
 #ifndef PARAMETRE
   #define PARAMETRE
+/*
+ ****************************************************************************************************************
+             Configuration 
+ ****************************************************************************************************************
+*/
 //--------------------------------------------- configuration des plateformes --------------------------------
-  #ifdef SIGFOX_SPI //test du board sigfox
+  #ifdef SIGFOX_SPI                       //test du board sigfox
     #define BOARDSIGFOX
     #define COMPRESSION
-    //#define BOARD "sigfox"
-    //#define RESEAU "LPWAN"
   #else 
     #define RESEAUWIFI
-    //#define BOARD "autre"
-    //#define RESEAU "WIFI"    
   #endif
+  
+//--------------------------------------------- configuration matérielle ------------------------------------
+  #ifdef BOARDSIGFOX
+    #define LED_PIN           8           // affichage de l'état des mesures pour Sigfox
+  #else
+    #define LED_PIN           D1          // affichage de l'état des mesures pour ESP (D8 pour les sacs, D1 sur ESP de test Philippe)
+    #define RXPIN             14          // laison série capteur
+    #define TXPIN             12          // laison série capteur
+  #endif
+    #define LED_COUNT         1           // nombre de LED dans le ruban
+    #define SDS               false        // PM       - fonctionnement sur RX/TX
+    #define Z14A              false       // CO2      - fonctionnement sur RX/TX
+    #define CCS811            false       // eCO2/COV - fonctionnement sur SDA/SCL
+    #define NEXTPM            false       // PM       - fonctionnement sur RX/TX
 
 //--------------------------------------------- configuration des librairies -------------------------------- 
   #ifdef BOARDSIGFOX
@@ -24,10 +48,17 @@
     #include <ESP8266HTTPClient.h>
     #include <FS.h>
   #endif
+  #if SDS
     #include <SdsDustSensor.h>
+  #endif
+  #if CCS811
+    #include "Adafruit_CCS811.h"          // librairie pour capteur CJMCU 811 : eCO2 / TCOV
+  #endif
+  #if NEXTPM
+    #include <PMS.h>                      // librairie PMS pour NextPM
+  #endif
     #include <ArduinoJson.h>
-    #include <Adafruit_NeoPixel.h>
-    
+    #include <Adafruit_NeoPixel.h>    
 /*
  ****************************************************************************************************************
              Paramètres qui impactent le code
@@ -71,21 +102,12 @@
     const int   TAILLE_MSG  = 32;                             // nombre de bit des messages composant le "payload" (3 messages pour un payload Sigfox de 12 octets)
     const int   TAILLE_PAY  = 96;                             // nombre de bit du "payload" (Sigfox 12 octets)
   #endif
-
 /*
  ****************************************************************************************************************
              Paramètres modifiables sans avoir à modifier le code
  ****************************************************************************************************************
 */
-//--------------------------------------------- configuration matérielle / logicielle
-  #ifdef BOARDSIGFOX
-    #define LED_PIN           8           // affichage de l'état des mesures pour Sigfox
-  #else
-    #define LED_PIN           D1          // affichage de l'état des mesures pour ESP (D8 pour les sacs, D1 sur ESP de test Philippe)
-    #define RXPIN             14          // laison série capteur
-    #define TXPIN             12          // laison série capteur
-  #endif
-    #define LED_COUNT         1           // nombre de LED dans le ruban
+//--------------------------------------------- configuration logicielle -----------------------------
     #define MEM_IDENTIFIANT   1           // 0 : pas de mémorisation des accès WiFi, 1 : mémorisation  
     #define MODE_LOG          "debug"    // "normal" : infos(0), warning(1), erreur(2), "verbose" : detail(3), "debug" : debug(4)
     const char *DEVICE_NAME = "sensor9";  // nom du device a documenter
@@ -111,8 +133,8 @@
     const char *AUTO_CONNECT      = "AI for GOOD";
   #endif
 
-  #ifdef COMPRESSION
 //--------------------------------------------- parametres compression
+  #ifdef COMPRESSION
     const float SEUIL_ECT = 0.001; // seuil minimum de l'écart-type (évite division par 0)
     const int   ECRET   = 2;       // coef d'écrétage des écarts pour la régression initiale ex. 2 (coef multiplié à l'écart-type)
     const int   NBREG   = 8;       // nombre de régression de niveau 1 ex. 8
@@ -131,9 +153,11 @@
     const int   TAILLE_ECH  = 32;                             // nombre de mesures d'un échantillon de la régression principale ex.32
     const int   TAILLE_ECH2 = TAILLE_ECH / NBREG;             // nombre de mesures des échantillons de la régression complémentaire
   #endif
-
-
-//--------------------------------------------- structures de données --------------------------------
+/*
+ ****************************************************************************************************************
+             structures de données
+ ****************************************************************************************************************
+*/
   struct DateRef {
     unsigned long  dateInt;         // date interne correspondante à la date externe (en millisecondes)
     unsigned long  dateExt;         // date externe issue du serveur lors de l'envoi des données (en millisecondes)
@@ -180,18 +204,4 @@
       uint32_t msg3;
     } SigfoxMessage;
   #endif
-//--------------------------------------------- affichages sur la liaison série --------------------------------
-/*#ifdef DEBUG
-  #define Log_ln(x)     Serial.println(x)
-  #define Log_ln2(x,y)  Serial.println(x,y)
-  #define Log(x)        Serial.print(x)
-  #define Log2(x,y)     Serial.print(x,y)
-#else
-  #define Log_ln(x)     
-  #define Log_ln2(x,y)  
-  #define Log(x)        
-  #define Log2(x,y)     
-#endif*/
-
-
 #endif

@@ -1,8 +1,8 @@
-  /* Option de compilation et téléversement :
+/* 
+  Option de compilation et téléversement :
       ESP     -> Type de carte : Node MCU 1.0(ESP-12E Module) / Options : 80 MHz, Flash, 4M (3M SPIFFS), v2 Lower Memory, Disabled, None, Only Sketch / programmateur : Arduino as ISP / Outils : ESP8266 Sketch Data Upload (envoi des fichiers Data)
       MKR1200 -> Type de carte : ARDUINO MKR FOX 1200 / programmateur : ATMEL-ICE
 */
-
 //#define BLYNK_PRINT Serial
 //#include <BlynkSimpleEsp8266.h>
 
@@ -12,6 +12,7 @@
   // variables générales
   String  theme             = "Global  ";                         // précision utilisée pour les logs
   String  modeFonctionnement= MODE_NORMAL;                        // voir valeur initiale dans parametre.h
+  String  modeLog           = MODE_LOG;                           // voir valeur initiale dans parametre.h
   int     tempsCycle        = TEMPS_CYCLE;                        // voir valeur initiale dans parametre.h
   // variables affichage LED
   int     mesureLED         = M_LED;                              // voir valeur initiale dans parametre.h
@@ -34,17 +35,13 @@
   double  pm [NB_MES];                                            // mesure de PM2.5 et PM10
   String  ressenti          = "normal";                           // 3 états : "bien", "normal", "pasbien"
 #ifdef RESEAUWIFI
-  // variables envois wifi
   File    ficMes;                                                 // fichier de stockage temporaire des mesures non envoyées
-  //String  JSONmessage;                                            // message JSON envoyé au serveur
-  //String  payload;                                                // message JSON retourné par le serveur 
   StaticJsonDocument<TAILLE_MAX_JSON> root;                       // taille à ajuster en fonction du nombre de caractères à envoyer
   String        tokenValeur;
   boolean       tokenPresence = false;
   unsigned long tokenExpire = 0;
 #endif
-#ifdef COMPRESSION
-  // variables series de mesures
+#ifdef COMPRESSION                                                // variables series de mesures
   Mesure   mesEnvoi[NB_MES][TAILLE_ECH];                          // tableau des mesures à envoyer
   CoefReg  coef     = {0.0, 0.0, 0.0};                            // paramètre de chaque régression unitaire
   CoefComp coefc    = {0.0, 0.0, 0.0, {}, {}, 0.0};               // coefc : paramètres issue de la compression ou de l'optimisation
@@ -53,45 +50,72 @@
   float y0init[TAILLE_ECH], y0n[TAILLE_ECH], y0fon[TAILLE_ECH];   // y0init : mesures à compresser, Y0n : mesures normalisées (entre 0 et 1), Y0fon : mesures issues de la compressipon
 #endif
 #ifdef BOARDSIGFOX
-  // variables sigfox
   SigfoxMessage payload;                                          // message envoyé par sigfox (12 octets découpés en trois variables de 4 octets)
   int lastMessageStatus;                                          // message de retour d'un envoi 
 #endif
-//---------------------------------------------initialisation--------------------------------------------------------------------------------
-  // initialisation des objets
+#if Z14A
+  byte cmd[9] = {0xFF,0x01,0x86,0x00,0x00,0x00,0x00,0x00,0x79};  // donnees pour le Z14A
+  char reponse[9];
+#endif
+//--------------------------------------------- initialisation des objets --------------------------------------------------------------------------------
   Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);      // afficheur LED associé au capteur
 #ifdef RESEAUWIFI
   ADC_MODE(ADC_VCC);                                                      // autorise la lecture de tension (non compatible avec l'utilisation de A0 qui doit rester en l'air) 
   ESP8266WebServer server(80);                                            // ecoute sur le port 80
 #endif
-#ifdef BOARDSIGFOX
-  SdsDustSensor sds(Serial1);                                             // capteur utilisé avec liaison série intégrée
-#else
+#if SDS
+ #ifdef BOARDSIGFOX
+  SdsDustSensor sds(Serial1);                                             // capteur utilisé avec liaison série intégrée (à revoir sur ESP)
+ #else
   SdsDustSensor sds(RXPIN, TXPIN);                                        // capteur utilisé avec liaison SPI
+ #endif
 #endif
-//---------------------------------------------setup--------------------------------------------------------------------------------
+#if NEXTPM
+  PMS pms(Serial1);
+#endif
+#if CCS811
+  Adafruit_CCS811 ccs;
+#endif
+/*
+ ****************************************************************************************************************
+             Setup 
+ ****************************************************************************************************************
+*/
   void setup() {
   
     theme = "setup   ";
-    // initialisation liaison série
-    Serial.begin(115200);                   
+    Serial.begin(115200);                                       // initialisation liaison série
     delay(10); Serial.println('\n');
-      
-    // initialisation données et affichage
+                                                                // initialisation données et affichage
     CreerMesure();                                              // Création pm10 et pm2_5
     strip.begin();                                              // INITIALIZE NeoPixel strip object (REQUIRED)
     strip.show();                                               // Turn OFF all pixels
     StripAffiche("démarrage");
   
-    // initialisation capteur PM
     theme = "capteur ";
+#if SDS                                                         // initialisation capteur PM
     sds.begin();
     Log(3, sds.queryFirmwareVersion().toString(), "");          // prints firmware version
     Log(3, sds.setActiveReportingMode().toString(), "");        // ensures sensor is in 'active' reporting mode
     Log(3, sds.setContinuousWorkingPeriod().toString(), "");    // ensures sensor has continuous working period - default but not recommended
-    //WorkingStateResult etatSDS = sds.wakeup();                   // initialisation de etat SDS
-#ifdef BOARDSIGFOX
-    // initialisation Sigfox
+    //WorkingStateResult etatSDS = sds.wakeup();                // initialisation de etat SDS
+#endif
+#if CCS811                                                      // initialisation eCO2/COV     -- à revoir 
+    if(!ccs.begin()){
+      Serial.println("Failed to start sensor! Please check your wiring.");
+      while(1);}
+    while(!ccs.available());                                    //calibrate temperature sensor
+    float temp = ccs.calculateTemperature();
+    ccs.setTempOffset(temp - 25.0);
+    Serial.println("calibration effectuée");
+#endif
+#if NEXTPM                                                      // initialisation NextPM  
+    Serial1.begin(9600);                                        // UART hardware
+#endif
+#if Z14A                                                        // initialisation Z14A  
+    Serial1.begin(9600);                                        // UART hardware
+#endif
+#ifdef BOARDSIGFOX                                              // initialisation Sigfox
     if (!SigFox.begin()) {
       reboot();
     }
@@ -102,8 +126,7 @@
 #endif
 #ifdef RESEAUWIFI
     theme = "ESP     ";
-    // initialisation serveur de fichier
-    if (!SPIFFS.begin()){
+    if (!SPIFFS.begin()){                                         // initialisation serveur de fichier
       Log(2, "SPIFFS Mount failed", "");
     } else {
       Log(3, "SPIFFS Mount succesfull", "");
@@ -113,24 +136,22 @@
     ficMes.println("vide");                                       // pour vider le fichier des mesures en attente
     ficMes.close();                                               // pour vider le fichier des mesures en attente
     */
-    // initialisation Serveur WiFi
+                                                                  // initialisation Serveur WiFi
     WiFi.mode(WIFI_AP_STA);                                       // mode mixte server et client
     WiFiManager wifiManager;                                      // WiFi option non fixe
-    if (MEM_IDENTIFIANT == 0){wifiManager.resetSettings();}        // garder en mémoire ou non les anciens identifiants
+    if (MEM_IDENTIFIANT == 0){wifiManager.resetSettings();}       // garder en mémoire ou non les anciens identifiants
     wifiManager.autoConnect(AUTO_CONNECT);                        // connexion automatique au réseau précédent si MEMIDENTIFIANT = 1
-    wifiManager.setDebugOutput(String(MODE_LOG) == String("debug"));
-    //wifiManager.autoConnect("Freebox-Lilith", "youwontforgetmyname");      
+    wifiManager.setDebugOutput(String(MODE_LOG) == String("debug"));      // à revoir, marche pas
     theme = "wifi    ";
     Log(3, "Connected to : " + WiFi.SSID(), WiFi.psk());
     Log(0, "IP address : ", WiFi.localIP().toString());
-
-    // initialisation token et date
+                                                                  // initialisation token et date
     MajToken();
-    
-    // serveur web
+                                                                  // initialisation serveur web
     server.on("/mesures.json", HTTP_GET, SendMesureWeb);
     server.serveStatic("/", SPIFFS, "/index.html");
     server.serveStatic("/index.html", SPIFFS, "/index.html");
+    server.serveStatic("/StyleIndex.css", SPIFFS, "/StyleIndex.css");
     server.begin();
 #endif    
     StripAffiche("controleur démarré");
@@ -138,32 +159,40 @@
     
     //Blynk.begin("YF4nOYISynxxazzjW8aXMS1CrB3-H_B5", "Freebox-Lilith", "youwontforgetmyname");
   }
-//---------------------------------------------boucle--------------------------------------------------------------------------------
+/*
+ ****************************************************************************************************************
+             Boucle 
+ ****************************************************************************************************************
+*/
   void loop() {
     
 #ifdef RESEAUWIFI
     theme = "wifi    ";
-    // mise à jour des paramètres(traitement des données du serveur)
-    if ( (millis() - temps_ref_parametre) >= float(tempsCycle)/float(NB_MESURE) ) {
+//--------------------------------------------- mise à jour des paramètres --------------------------------------------------------------------------------                                                                               
+    if ( (millis() - temps_ref_parametre) >= float(tempsCycle)/float(NB_MESURE) ) {     // mise à jour des paramètres(traitement des données du serveur)
       temps_ref_parametre = millis();
       AjustementParametres();
     }
-    // mise à jour des paramètres(traitement des requetes des pages web)
-    WiFiClient client;
+    WiFiClient client;                                                                  // mise à jour des paramètres(traitement des requetes des pages web)
     server.handleClient();
 #endif    
+//--------------------------------------------- gestion des modes de fonctionnement --------------------------------------------------------------------------------                                                                               
     if (modeFonctionnement == "veille") {
       theme = "capteur ";
       StripAffiche("mode veille SDS");
+#if SDS
       /*WorkingStateResult etatSDS = sds.sleep();
       if (etatSDS.isWorking()) {
         Log(1, "Probleme de mise en sommeil SDS", "");
       }*/
+#endif
     } else {
+#if SDS
       /*WorkingStateResult etatSDS = sds.wakeup();
       if (!etatSDS.isWorking()) {
         Log(1, "Probleme de reveil SDS", "");
       }*/
+#endif
       theme = "global  ";
       if (modeFonctionnement == "economie") {
           niveauAffichage = niveauFaible;
@@ -172,7 +201,7 @@
       } else {
           niveauAffichage = niveauMoyen;        
       }
-      // boucle de réalisation des mesures intermédiaires
+//--------------------------------------------- boucle de réalisation des mesures intermédiaires --------------------------------------------------------------------------------                                                                               
       if ( (millis() - temps_ref_mesure) >= float(tempsCycle)/float(NB_MESURE) ) {
           theme = "mesure  ";
           temps_ref_mesure = millis();
@@ -182,13 +211,12 @@
           StripAffiche("fin mesure");
           nbMesureElem ++;
       }
-      // boucle principale de mesure
+//--------------------------------------------- boucle principale de mesure --------------------------------------------------------------------------------                                                                               
       if ( nbMesureElem >= NB_MESURE ){
           theme = "mesure  ";
           nbMesureElem = 0;
 #ifdef RESEAUWIFI
-          // envoi des données stockées à renvoyer
-          RepriseEnvoiWifi();                                 // essai de renvoi des mesures du fichier
+          RepriseEnvoiWifi();                                 // essai de renvoi des mesures à renvoyer stockées dans SPIFFS
 #endif
           GenereMesure();                                     // calcul de la mesure moyenne dans mes.xxx
           if (MesureOk()) {
@@ -208,10 +236,10 @@
 #endif
           mesValeurLED = mes[mesureLED].valeur;
           UpdateLed();                                        // affichge du niveau sur les LED
-          InitMesureRessenti();
+          //InitMesureRessenti();                             // dépend de la gestion du ressenti (maintenu ou non maintenu) -> à clarifier
       }
+//--------------------------------------------- boucle d'envoi des données groupées --------------------------------------------------------------------------------                                                                               
 #ifdef COMPRESSION
-      // boucle d'envoi des données groupées
       if ( nbMesureGroupe >= TAILLE_ECH ){
           nbMesureGroupe = 0;      
           GenereGroupe();                                      // préparation des données à compresser avant envoi
