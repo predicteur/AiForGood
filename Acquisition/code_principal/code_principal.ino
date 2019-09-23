@@ -236,7 +236,7 @@
 #endif
           mesValeurLED = mes[mesureLED].valeur;
           UpdateLed();                                        // affichge du niveau sur les LED
-          //InitMesureRessenti();                             // dépend de la gestion du ressenti (maintenu ou non maintenu) -> à clarifier
+          InitMesureRessenti();                               // dépend de la gestion du ressenti (maintenu ou non maintenu) -> à clarifier
       }
 //--------------------------------------------- boucle d'envoi des données groupées --------------------------------------------------------------------------------                                                                               
 #ifdef COMPRESSION

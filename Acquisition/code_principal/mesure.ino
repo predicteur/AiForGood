@@ -3,12 +3,12 @@
   void InitMesureRessenti(){
     int nMes;
     for (nMes = 0; nMes < NB_MES; ++nMes) {
-      mes[nMes].nombre = 0;
-      mes[nMes].nombreOk = 0;
-      mes[nMes].valeur = 0;
-      mes[nMes].date = 0;
-      mes[nMes].ecartType = 0;
-      mes[nMes].tauxErreur = 0;
+      mes[nMes].nombre        = 0;
+      mes[nMes].nombreOk      = 0;
+      mes[nMes].valeur        = 0;
+      mes[nMes].date          = 0;
+      mes[nMes].ecartType     = 0;
+      mes[nMes].tauxErreur    = 0;
     }
     ressenti = "normal";
   }
@@ -43,6 +43,7 @@
       mes[nMes].date = mes[nMes].date / mes[nMes].nombre;
       if (mes[nMes].nombreOk > 0) {
           mes[nMes].valeur /= float(mes[nMes].nombreOk);
+          mes[nMes].valeurFiltree = COEF_FILTRAGE * mes[nMes].valeurFiltree + (1-COEF_FILTRAGE) * mes[nMes].valeur;
           variance = (mes[nMes].ecartType / float(mes[nMes].nombreOk) - pow(mes[nMes].valeur, 2.0));
           if (variance < 0.000001) {
             mes[nMes].ecartType =  0.0;

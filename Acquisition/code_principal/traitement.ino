@@ -154,7 +154,7 @@
   void PrMesure(int level){
     theme = "capteur ";
     Log(level, "   Nombre de mesures : " + String(mes[mesureLED].nombre) + " Taux d erreur : " + String(mes[mesureLED].tauxErreur), "");
-    Log(level, "   Valeur            : " + String(mes[mesureLED].valeur) + " Ecart-type : " + String(mes[mesureLED].ecartType),"");
+    Log(level, "   Valeur(inst+filt) : " + String(mes[mesureLED].valeur) + "  " + String(mes[mesureLED].valeurFiltree) + " Ecart-type : " + String(mes[mesureLED].ecartType),"");
     Log(level, "   Ressenti          : " + ressenti + " Date : " + CalculDate(mes[mesureLED].date), "");
   }
 //-----------------------------------------------------------------------------------------------------------------------------

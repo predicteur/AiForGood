@@ -6,6 +6,8 @@
     root["device"]            = DEVICE_NAME;
     root["PM25"]              = String(mes[M_PM25].valeur, 2);
     root["PM10"]              = String(mes[M_PM10].valeur, 2);
+    root["PM25_filtree"]      = String(mes[M_PM25].valeurFiltree, 2);
+    root["PM10_filtree"]      = String(mes[M_PM10].valeurFiltree, 2);
     root["date_mesure"]       = CalculDate(mes[M_PM25].date);
     root["ecart_type_PM25"]   = String(mes[M_PM25].ecartType, 2);
     root["ecart_type_PM10"]   = String(mes[M_PM10].ecartType, 2);

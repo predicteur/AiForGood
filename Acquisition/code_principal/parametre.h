@@ -114,6 +114,7 @@
 
 //--------------------------------------------- configuration mesures
     #define TEMPS_CYCLE     20000         // Temps de cycle : période d envoi des mesures au serveur en millisecondes
+    #define COEF_FILTRAGE   0.5           // filtrage AR simple : xf(t) = coef * xf(t-1) + (1-coef) * x(t)
     #define NB_MESURE       5             // nombre de mesure élémentaires dans le temps de cycle pour calcul du niveau de qualité
     #define VALEUR_MIN_PM   0.0           // limite mini autorisee pour les PM
     #define VALEUR_MAX_PM   1000.0        // limite maxi autorisee pour les PM
@@ -168,6 +169,7 @@
     int     nombre;                 // nombre de mesures effectuées dans le temps de cycle
     int     nombreOk;               // nombre de mesures correctes dans le temps de cycle
     double  valeur;                 // valeur de la mesure calculée dans le temps de cycle
+    double  valeurFiltree;          // valeur de la mesure filtrée
     float   ecartType;              // écart-type des valeurs bonnes
     unsigned int  date;             // date de la mesure
     float   valeurMin;              // valeur min autorisée pour la mesure
