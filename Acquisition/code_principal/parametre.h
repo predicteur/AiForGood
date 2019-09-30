@@ -23,18 +23,22 @@
   #endif
   
 //--------------------------------------------- configuration matérielle ------------------------------------
+    #define LED_COUNT         1           // nombre de LED dans le ruban
+    #define GPS               true        // GPS      - fonctionnement sur RX/TX
+    #define SDS               false       // PM       - fonctionnement sur RX/TX
+    #define Z14A              false       // CO2      - fonctionnement sur RX/TX
+    #define CCS811            false       // eCO2/COV - fonctionnement sur SDA/SCL
+    #define NEXTPM            false       // PM       - fonctionnement sur RX/TX
   #ifdef BOARDSIGFOX
     #define LED_PIN           8           // affichage de l'état des mesures pour Sigfox
   #else
     #define LED_PIN           D1          // affichage de l'état des mesures pour ESP (D8 pour les sacs, D1 sur ESP de test Philippe)
-    #define RXPIN             14          // laison série capteur
-    #define TXPIN             12          // laison série capteur
+    #define RXPIN             14          // laison série capteur (GPIO14 = D5)
+    #define TXPIN             12          // laison série capteur (GPIO12 = D6)
   #endif
-    #define LED_COUNT         1           // nombre de LED dans le ruban
-    #define SDS               false        // PM       - fonctionnement sur RX/TX
-    #define Z14A              false       // CO2      - fonctionnement sur RX/TX
-    #define CCS811            false       // eCO2/COV - fonctionnement sur SDA/SCL
-    #define NEXTPM            false       // PM       - fonctionnement sur RX/TX
+  #if GPS
+    #define RXGPS             2           // laison série GPS     (GPIO2  = D4)
+  #endif
 
 //--------------------------------------------- configuration des librairies -------------------------------- 
   #ifdef BOARDSIGFOX
@@ -47,6 +51,10 @@
     #include <WiFiManager.h>
     #include <ESP8266HTTPClient.h>
     #include <FS.h>
+  #endif
+  #if GPS
+    #include <TinyGPS++.h>     
+    #include <SoftwareSerial.h>
   #endif
   #if SDS
     #include <SdsDustSensor.h>
@@ -69,7 +77,7 @@
     #define   M_PM25    0                     // indice de la mesure PM25 dans le tableau des mesures
     #define   M_PM10    1                     // indice de la mesure PM10 dans le tableau des mesures
     #define   FIC_BUF   "/buffer.txt"         // fichier de stockage des mesures non encore envoyées     
-    #define   TAILLE_MAX_JSON   500           // taille maxi des fichiers JSON
+    #define   TAILLE_MAX_JSON   800           // taille maxi des fichiers JSON
     #define   MODE_ECO          "economie"    // mode de mesure
     #define   MODE_NORMAL       "normal"      // mode de mesure
     #define   MODE_FORT         "fort"        // mode de mesure
@@ -124,11 +132,12 @@
 
 //--------------------------------------------- parametres wifi
   #ifdef RESEAUWIFI
-    #define SERVEUR_AI4GOOD_VAR     "http://ai-for-good-api.herokuapp.com/api/v1/var"
-    #define SERVEUR_AI4GOOD_LOGIN   "https://ai-for-good-api.herokuapp.com/login"
     #define SERVEUR_AI4GOOD_FINGER  "08 3B 71 72 02 43 6E CA ED 42 86 93 BA 7E DF 81 C4 BC 62 30‎"
-    #define SERVEUR_AI4GOOD_DATA    "https://ai-for-good-api.herokuapp.com/send/data"
-    #define SERVEUR_AI4GOOD_LOG     "https://ai-for-good-api.herokuapp.com/send/log"
+    #define SERVEUR_AI4GOOD_VAR     "http://ai-for-good-api.herokuapp.com/api/v1/var"
+    #define SERVEUR_AI4GOOD_PARAM   "https://ai-for-good-api.herokuapp.com/api/v1/params"
+    #define SERVEUR_AI4GOOD_LOGIN   "https://ai-for-good-api.herokuapp.com/api/v1/login"
+    #define SERVEUR_AI4GOOD_DATA    "https://ai-for-good-api.herokuapp.com/api/v1/data"
+    #define SERVEUR_AI4GOOD_LOG     "https://ai-for-good-api.herokuapp.com/api/v1/log"
     #define AI4GOOD_USERNAME        "Ai4Good"
     #define AI4GOOD_PASSWORD        "eGXyyne2RTp4JxGJ6cX8Ggn3"
     const char *AUTO_CONNECT      = "AI for GOOD";

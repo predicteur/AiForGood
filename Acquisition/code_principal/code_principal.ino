@@ -34,6 +34,10 @@
   Mesure  mes[NB_MES];                                            // tableau des informations liées à une mesure
   double  pm [NB_MES];                                            // mesure de PM2.5 et PM10
   String  ressenti          = "normal";                           // 3 états : "bien", "normal", "pasbien"
+#if GPS
+  String  longitude         = "";
+  String  latitude          = "";
+#endif
 #ifdef RESEAUWIFI
   File    ficMes;                                                 // fichier de stockage temporaire des mesures non envoyées
   StaticJsonDocument<TAILLE_MAX_JSON> root;                       // taille à ajuster en fonction du nombre de caractères à envoyer
@@ -69,6 +73,10 @@
  #else
   SdsDustSensor sds(RXPIN, TXPIN);                                        // capteur utilisé avec liaison SPI
  #endif
+#endif
+#if GPS
+  TinyGPSPlus gps;
+  SoftwareSerial GpsSerial(RXGPS, SW_SERIAL_UNUSED_PIN);                  // (RX, TX)
 #endif
 #if NEXTPM
   PMS pms(Serial1);
@@ -108,6 +116,9 @@
     float temp = ccs.calculateTemperature();
     ccs.setTempOffset(temp - 25.0);
     Serial.println("calibration effectuée");
+#endif
+#if GPS                                                         // initialisation GPS  
+    GpsSerial.begin(9600);
 #endif
 #if NEXTPM                                                      // initialisation NextPM  
     Serial1.begin(9600);                                        // UART hardware
@@ -166,9 +177,9 @@
 */
   void loop() {
     
+//--------------------------------------------- mise à jour des paramètres --------------------------------------------------------------------------------                                                                               
 #ifdef RESEAUWIFI
     theme = "wifi    ";
-//--------------------------------------------- mise à jour des paramètres --------------------------------------------------------------------------------                                                                               
     if ( (millis() - temps_ref_parametre) >= float(tempsCycle)/float(NB_MESURE) ) {     // mise à jour des paramètres(traitement des données du serveur)
       temps_ref_parametre = millis();
       AjustementParametres();
@@ -201,7 +212,16 @@
       } else {
           niveauAffichage = niveauMoyen;        
       }
-//--------------------------------------------- boucle de réalisation des mesures intermédiaires --------------------------------------------------------------------------------                                                                               
+//--------------------------------------------- mise à jour des coordonnées GPS -------------------------------------------------------------------------------------------                                                                               
+#if GPS
+      while (GpsSerial.available() > 0) { gps.encode(GpsSerial.read());}
+      if (gps.location.isUpdated()) {
+        longitude = String(gps.location.lng(), 7);
+        latitude  = String(gps.location.lat(), 7);
+        Log(4, "Cooordonnées GPS : " + longitude + " " + latitude,"");
+      }
+#endif
+//--------------------------------------------- boucle de réalisation des mesures intermédiaires --------------------------------------------------------------------------------                                                                                     
       if ( (millis() - temps_ref_mesure) >= float(tempsCycle)/float(NB_MESURE) ) {
           theme = "mesure  ";
           temps_ref_mesure = millis();

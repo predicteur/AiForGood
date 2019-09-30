@@ -4,19 +4,19 @@
     root.clear();
     String JSONmessage = "";
     root["device"]            = DEVICE_NAME;
-    root["PM25"]              = String(mes[M_PM25].valeur, 2);
-    root["PM10"]              = String(mes[M_PM10].valeur, 2);
-    root["PM25_filtree"]      = String(mes[M_PM25].valeurFiltree, 2);
-    root["PM10_filtree"]      = String(mes[M_PM10].valeurFiltree, 2);
+    root["pm25"]              = String(mes[M_PM25].valeur, 2);
+    root["pm10"]              = String(mes[M_PM10].valeur, 2);
+    root["pm25_filtree"]      = String(mes[M_PM25].valeurFiltree, 2);
+    root["pm10_filtree"]      = String(mes[M_PM10].valeurFiltree, 2);
     root["date_mesure"]       = CalculDate(mes[M_PM25].date);
-    root["ecart_type_PM25"]   = String(mes[M_PM25].ecartType, 2);
-    root["ecart_type_PM10"]   = String(mes[M_PM10].ecartType, 2);
-    root["taux_erreur_PM25"]  = String(mes[M_PM25].tauxErreur, 2);
-    root["taux_erreur_PM10"]  = String(mes[M_PM10].tauxErreur, 2);
-    root["niv_batt"]          = " ";
+    root["ecart_type_pm25"]   = String(mes[M_PM25].ecartType, 2);
+    root["ecart_type_pm10"]   = String(mes[M_PM10].ecartType, 2);
+    root["taux_erreur_pm25"]  = String(mes[M_PM25].tauxErreur, 2);
+    root["taux_erreur_pm10"]  = String(mes[M_PM10].tauxErreur, 2);
+    //root["niv_batt"]          = " ";
     root["feeling"]           = ressenti;
-    root["latitude"]          = String(48.748010);
-    root["longitude"]         = String(2.293491);
+    root["latitude"]          = latitude;
+    root["longitude"]         = longitude;
     if (measureJson(root) < (TAILLE_MAX_JSON-10)) {
       serializeJson(root, JSONmessage);
     }
