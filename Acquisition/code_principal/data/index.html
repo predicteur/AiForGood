@@ -31,8 +31,8 @@
             </tr><tr>
                 <td class="choix"><label   for="ressenti">Ressenti :</label></td>
                 <td class="choix"><select name="ressenti" id="ressenti">
-                    <option value="bien" selected>Bien</option>
-                    <option value="normal">Normal</option>
+                    <option value="bien">Bien</option>
+                    <option value="normal" selected>Normal</option>
                     <option value="pasbien">Pasbien</option></select></td>
             </tr><tr>
                 <td class="choix"><label   for="modeFonc">Mode de fonct. :</label></td>
@@ -69,7 +69,7 @@
         //var fort        = parseInt(document.getElementById("niveauFort"));
         //var fort2        = parseInt(form.elements.niveauFort.value);
         //console.log(fort2);
-        var parametre   = { MESURE_LED: "0", RESSENTI:"bien", MODE_FONCTIONNEMENT:"normal", MODE_LOG:"normal", TEMPS_CYCLE:20000, NIVEAU_FORT:100, NIVEAU_MOYEN:25, NIVEAU_FAIBLE:10 };
+        var parametre   = { mesure_led: "0", ressenti:"normal", mode_fonctionnement:"normal", mode_log:"normal", temps_cycle:20000, niveau_fort:100, niveau_moyen:25, niveau_faible:10 };
         var niveau      = document.getElementById("0").getElementsByClassName("indicateur");
         
         function updateData() {
@@ -87,14 +87,14 @@
             xhr.send();
         }
         form.addEventListener("submit", function (e) {
-            parametre.MESURE_LED            = parseInt(form.elements.mesureLed.value);
-            parametre.RESSENTI              = form.elements.ressenti.value;
-            parametre.MODE_FONCTIONNEMENT   = form.elements.modeFonc.value;
-            parametre.MODE_LOG              = form.elements.modeLog.value;
-            parametre.TEMPS_CYCLE           = parseInt(form.elements.tempsCycle.value);
-            parametre.NIVEAU_FORT           = parseInt(form.elements.niveauFort.value);
-            parametre.NIVEAU_MOYEN          = parseInt(form.elements.niveauMoyen.value);
-            parametre.NIVEAU_FAIBLE         = parseInt(form.elements.niveauFaible.value);
+            parametre.mesure_led            = parseInt(form.elements.mesureLed.value);
+            parametre.ressenti              = form.elements.ressenti.value;
+            parametre.mode_fonctionnement   = form.elements.modeFonc.value;
+            parametre.mode_log              = form.elements.modeLog.value;
+            parametre.temps_cycle           = parseInt(form.elements.tempsCycle.value);
+            parametre.niveau_fort           = parseInt(form.elements.niveauFort.value);
+            parametre.niveau_moyen          = parseInt(form.elements.niveauMoyen.value);
+            parametre.niveau_faible         = parseInt(form.elements.niveauFaible.value);
             //alert(parametre.NIVEAU_FORT);
             e.preventDefault(); // Annulation de l'envoi des données
         });

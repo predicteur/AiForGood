@@ -4,7 +4,6 @@
     String typeS = "infos---";
     String JSONlog = "";
     String JSONretour = "";
-    StaticJsonDocument<TAILLE_MAX_JSON> rootLog;
     if        (type == 1) {
       typeS = "warning-";
     } else if (type == 2) {
@@ -19,18 +18,17 @@
     }
 #ifdef RESEAUWIFI
     if ((type < 3) & (tokenExpire > 0)) {                                           // envoi des logs
-      rootLog.clear();
+      const size_t capacity = JSON_OBJECT_SIZE(10);
+      DynamicJsonDocument rootLog(capacity);
       rootLog["equipement"]        = DEVICE_NAME;
       rootLog["date"]              = CalculDate(millis()/100);
       rootLog["type"]              = typeS;
       rootLog["theme"]             = theme;
       rootLog["objet"]             = objet;
       rootLog["parametre"]         = parametre;
-      if (measureJson(rootLog) < (TAILLE_MAX_JSON-10)) {
-        serializeJson(rootLog, JSONlog);
-      }
+      serializeJson(rootLog, JSONlog);
       if (JSONlog == "") {
-        Log(4, "taille JSON superieure a la taille maxi", "");
+        Log(4, "JSON log non genere", "");
       } else {
         JSONretour = EnvoiJSON(url, JSONlog);
         if ((JSONretour == "") & (objet != "retour serveur log vide")) {
@@ -102,11 +100,12 @@
     return date;
   }
 //-----------------------------------------------------------------------------------------------------------------------------
-  boolean TestBatterieBasse(){
-    
-    // à construire
-    
-    return false;
+  int MesureBatterie(){
+    int niveau = 100;
+                                                                // à construire
+    niveauBatterieBas = false;    
+                                                                // à construire
+    return niveau;
   }
 //-----------------------------------------------------------------------------------------------------------------------------
   void StripAffiche(String modeStrip){
@@ -139,7 +138,7 @@
         strip.setPixelColor(0, ORANGE[0], ORANGE[1], ORANGE[2]);
     } else if (modeStrip == "mauvais") {         
         strip.setPixelColor(0, ROUGE[0], ROUGE[1], ROUGE[2]);
-    } else if (modeStrip == "début mesure") { 
+    } else if (modeStrip == "debut mesure") { 
         strip.setBrightness(LUMINOSITE_FORTE * niveau / 100);
     } else if (modeStrip == "fin mesure") {  
         strip.setBrightness(LUMINOSITE_FAIBLE * niveau / 100);

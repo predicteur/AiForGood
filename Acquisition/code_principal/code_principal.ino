@@ -14,6 +14,12 @@
   String  modeFonctionnement= MODE_NORMAL;                        // voir valeur initiale dans parametre.h
   String  modeLog           = MODE_LOG;                           // voir valeur initiale dans parametre.h
   int     tempsCycle        = TEMPS_CYCLE;                        // voir valeur initiale dans parametre.h
+  int     bleu  [3]         = {BLEU[0],    BLEU[1],  BLEU[2]};
+  int     rouge [3]         = {ROUGE[0],  ROUGE[1], ROUGE[2]};
+  int     vert  [3]         = {VERT[0],    VERT[1],  VERT[2]};
+  int     orange[3]         = {ORANGE[0],ORANGE[1],ORANGE[2]};
+  int     violet[3]         = {VIOLET[0],VIOLET[1],VIOLET[2]};
+
   // variables affichage LED
   int     mesureLED         = M_LED;                              // voir valeur initiale dans parametre.h
   int     niveauAffichage   = NIVEAU_MOYEN;                       // voir les niveaux dans parametre.h
@@ -21,7 +27,8 @@
   int     niveauMoyen       = NIVEAU_MOYEN;                       // voir valeur initiale dans parametre.h
   int     niveauFaible      = NIVEAU_FAIBLE;                      // voir valeur initiale dans parametre.h
   float   mesValeurLED      = 0;                                  // valeur issue des mesures à afficher sur la LED
-  boolean niveauBatterieBas = false;                              // utilisé pour l'affichage LED
+  int     niveauBatterie    = 100;                                // 
+  boolean niveauBatterieBas = false;                              // 
   // variables périodicité
   float   temps_ref_mesure  = 0;                                  // compteur de temps intermédiaire de 0 à tempsCycle/NB_MESURE pour les mesures
   float   temps_ref_parametre = 0;                                // compteur de temps intermédiaire de 0 à tempsCycle/NB_MESURE pour les paramètres
@@ -40,7 +47,6 @@
 #endif
 #ifdef RESEAUWIFI
   File    ficMes;                                                 // fichier de stockage temporaire des mesures non envoyées
-  StaticJsonDocument<TAILLE_MAX_JSON> root;                       // taille à ajuster en fonction du nombre de caractères à envoyer
   String        tokenValeur;
   boolean       tokenPresence = false;
   unsigned long tokenExpire = 0;
@@ -180,9 +186,9 @@
 //--------------------------------------------- mise à jour des paramètres --------------------------------------------------------------------------------                                                                               
 #ifdef RESEAUWIFI
     theme = "wifi    ";
-    if ( (millis() - temps_ref_parametre) >= float(tempsCycle)/float(NB_MESURE) ) {     // mise à jour des paramètres(traitement des données du serveur)
+    if ( (millis() - temps_ref_parametre) >= float(tempsCycle)/float(NB_MESURE) ) {     // mise à jour des variables(traitement des données du serveur)
       temps_ref_parametre = millis();
-      AjustementParametres();
+      AjustementVariables();
     }
     WiFiClient client;                                                                  // mise à jour des paramètres(traitement des requetes des pages web)
     server.handleClient();
@@ -225,7 +231,7 @@
       if ( (millis() - temps_ref_mesure) >= float(tempsCycle)/float(NB_MESURE) ) {
           theme = "mesure  ";
           temps_ref_mesure = millis();
-          StripAffiche("début mesure");
+          StripAffiche("debut mesure");
           LireCapteur();                                      // lecture des données dans pm[]
           CalculMesure();                                     // ajout des valeurs instantanées dans mes.xxx
           StripAffiche("fin mesure");
@@ -236,13 +242,13 @@
           theme = "mesure  ";
           nbMesureElem = 0;
 #ifdef RESEAUWIFI
-          RepriseEnvoiWifi();                                 // essai de renvoi des mesures à renvoyer stockées dans SPIFFS
+          RepriseEnvoiWifiData();                             // essai de renvoi des mesures à renvoyer stockées dans SPIFFS
 #endif
           GenereMesure();                                     // calcul de la mesure moyenne dans mes.xxx
           if (MesureOk()) {
               PrMesure(3);                                     
 #ifdef RESEAUWIFI
-              EnvoiWifi();                                    // envoi sur le serveur (et stockage fichier si KO)
+              EnvoiWifiData();                                // envoi sur le serveur (et stockage fichier si KO)
 #else
               GroupeMesure();                                 // ajout de la mesure au groupe de mesure à envoyer par Sigfox   
 #endif
@@ -250,7 +256,7 @@
           else {
               StripAffiche("mesure non envoyée"); delay(2000);
           }
-          niveauBatterieBas = TestBatterieBasse();            // test à mettre en place (mesure)
+          niveauBatterie = MesureBatterie();                  //  à mettre en place (mesure)
 #ifdef COMPRESSION
           nbMesureGroupe ++;
 #endif

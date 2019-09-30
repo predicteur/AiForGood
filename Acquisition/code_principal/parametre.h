@@ -77,7 +77,7 @@
     #define   M_PM25    0                     // indice de la mesure PM25 dans le tableau des mesures
     #define   M_PM10    1                     // indice de la mesure PM10 dans le tableau des mesures
     #define   FIC_BUF   "/buffer.txt"         // fichier de stockage des mesures non encore envoyées     
-    #define   TAILLE_MAX_JSON   800           // taille maxi des fichiers JSON
+    //#define   TAILLE_MAX_JSON   800           // taille maxi des fichiers JSON
     #define   MODE_ECO          "economie"    // mode de mesure
     #define   MODE_NORMAL       "normal"      // mode de mesure
     #define   MODE_FORT         "fort"        // mode de mesure
