@@ -18,7 +18,7 @@
     }
 #ifdef RESEAUWIFI
     if ((type < 3) & (tokenExpire > 0)) {                                           // envoi des logs
-      const size_t capacity = JSON_OBJECT_SIZE(10);
+      const size_t capacity = JSON_OBJECT_SIZE(12);
       DynamicJsonDocument rootLog(capacity);
       rootLog["equipement"]        = DEVICE_NAME;
       rootLog["date"]              = CalculDate(millis()/100);
@@ -111,7 +111,7 @@
   void StripAffiche(String modeStrip){
     int niveau = niveauAffichage; 
     Log(4, modeStrip, "");
-    if (niveauBatterieBas) { niveau = min(niveauAffichage, niveauFaible); }     
+    if (niveauBatterieBas) { niveau = min(niveauAffichage, NIVEAU_FAIBLE); }     
         strip.setBrightness(LUMINOSITE_FAIBLE * niveau / 100);
     if        (modeStrip == "démarrage") {     
         strip.setBrightness(LUMINOSITE_FAIBLE * niveau / 100);
@@ -124,7 +124,7 @@
         if ((millis() - timerVeille) > 6000) {                                                // clignotement
           timerVeille = millis();
         } else if ((millis() - timerVeille) > 4000){
-          strip.setBrightness(LUMINOSITE_FAIBLE * niveauFaible / 100);
+          strip.setBrightness(LUMINOSITE_FAIBLE * NIVEAU_FAIBLE / 100);
         } else {
           strip.setBrightness(NIVEAU_ETEINT); }
     } else if (modeStrip == "mesure non envoyee") {
@@ -178,6 +178,7 @@
  #else
     pm[M_PM25] = float(ESP.getVcc())/10.0;
     pm[M_PM10] = 100.0 * cos(3.14159 * millis());
+    delay(1000);
  #endif
 #endif
     Log(3, "mesure capteur : " + String(pm[mesureLED]), "");

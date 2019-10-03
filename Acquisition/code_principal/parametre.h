@@ -1,11 +1,3 @@
-/* 
-  Paramètres à vérifier avant compilation :
-  
-    #define SDS               true       (si SDS présent)
-    #define LED_PIN           D8         (si on est sur un sac)
-    #define MODE_LOG          "normal"   (si on est sur un fonctionnement hors test)
-    const char *DEVICE_NAME = "sensorxxx";  
-*/
 
 #ifndef PARAMETRE
   #define PARAMETRE
@@ -24,7 +16,7 @@
   
 //--------------------------------------------- configuration matérielle ------------------------------------
     #define LED_COUNT         1           // nombre de LED dans le ruban
-    #define GPS               true        // GPS      - fonctionnement sur RX/TX
+    #define GPS               false        // GPS      - fonctionnement sur RX/TX
     #define SDS               false       // PM       - fonctionnement sur RX/TX
     #define Z14A              false       // CO2      - fonctionnement sur RX/TX
     #define CCS811            false       // eCO2/COV - fonctionnement sur SDA/SCL
@@ -77,11 +69,19 @@
     #define   M_PM25    0                     // indice de la mesure PM25 dans le tableau des mesures
     #define   M_PM10    1                     // indice de la mesure PM10 dans le tableau des mesures
     #define   FIC_BUF   "/buffer.txt"         // fichier de stockage des mesures non encore envoyées     
-    //#define   TAILLE_MAX_JSON   800           // taille maxi des fichiers JSON
-    #define   MODE_ECO          "economie"    // mode de mesure
-    #define   MODE_NORMAL       "normal"      // mode de mesure
-    #define   MODE_FORT         "fort"        // mode de mesure
-    #define   MODE_VEILLE       "veille"      // mode de non-mesure
+    
+    #define   RESET_AUCUN       "aucun"       // mode de reset wifi
+    #define   RESET_AUTO        "autoconnect" // mode de reset wifi
+    #define   RESET_MANU        "manuconnect" // mode de reset wifi
+    #define   LUM_ECO           "economie"    // mode d'affichage
+    #define   LUM_NORMAL        "normal"      // mode d'affichage
+    #define   LUM_FORT          "fort"        // mode d'affichage
+    #define   MODE_VEILLE       "veille"      // mode de fonctionnement
+    #define   MODE_NORMAL       "normal"      // mode de fonctionnement
+    #define   MODE_AUTONOME     "autonome"    // mode de fonctionnement
+    #define   LOG_NORMAL        "normal"      // mode de log
+    #define   LOG_VERBOSE       "verbose"     // mode de log
+    #define   LOG_DEBUG         "debug"       // mode de log
     #define   RESSENTI_BIEN     "bien"        // valeur de ressenti
     #define   RESSENTI_NORMAL   "normal"      // valeur de ressenti
     #define   RESSENTI_PASBIEN  "pasbien"     // valeur de ressenti
@@ -92,18 +92,18 @@
     const boolean oneshot = true;    // affichage des infos d'envoi sigfox
   #endif
 
-//--------------------------------------------- parametres affichage LED --------------------------------
-    const int     ROUGE[3]          = {250, 0, 0};
-    const int     ORANGE[3]         = {200, 100, 0};
-    const int     BLEU[3]           = {0, 0, 250};
-    const int     VIOLET[3]         = {250, 0, 200};
-    const int     VERT[3]           = {0, 250, 0};
-    const int     LUMINOSITE_FORTE  = 250;   // maxi 255
-    const int     LUMINOSITE_FAIBLE = 50;
-    const int     NIVEAU_FORT       = 100;                    // niveau variable de 0 à 100
-    const int     NIVEAU_MOYEN      = 25;                     // niveau variable de 0 à 100 (utilisé en m
-    const int     NIVEAU_FAIBLE     = 10;                     // niveau utilisé pour le niveau bas de la batterie et en mode économie)
-    const int     NIVEAU_ETEINT     = 0;                      // niveau variable de 0 à 100 (utilisé en mode veille)
+//--------------------------------------------- parametres affichage LED modifiables VAR --------------------------------
+    int     ROUGE[3]          = {250, 0, 0};
+    int     ORANGE[3]         = {200, 100, 0};
+    int     BLEU[3]           = {0, 0, 250};
+    int     VIOLET[3]         = {250, 0, 200};
+    int     VERT[3]           = {0, 250, 0};
+    int     LUMINOSITE_FORTE  = 250;   // maxi 255
+    int     LUMINOSITE_FAIBLE = 50;
+    int     NIVEAU_FORT       = 100;                    // niveau variable de 0 à 100
+    int     NIVEAU_MOYEN      = 25;                     // niveau variable de 0 à 100 (utilisé en m
+    int     NIVEAU_FAIBLE     = 10;                     // niveau utilisé pour le niveau bas de la batterie et en mode économie)
+    int     NIVEAU_ETEINT     = 0;                      // niveau variable de 0 à 100 (utilisé en mode veille)
     
 //--------------------------------------------- paramètres de l'envoi --------------------------------
   #ifdef BOARDSIGFOX
@@ -116,19 +116,19 @@
  ****************************************************************************************************************
 */
 //--------------------------------------------- configuration logicielle -----------------------------
-    #define MEM_IDENTIFIANT   1           // 0 : pas de mémorisation des accès WiFi, 1 : mémorisation  
-    #define MODE_LOG          "debug"    // "normal" : infos(0), warning(1), erreur(2), "verbose" : detail(3), "debug" : debug(4)
+    boolean MEM_IDENTIFIANT = true;       // false : pas de mémorisation des accès WiFi, true : mémorisation  
+    String LOG_DEFAUT       = LOG_DEBUG;  // "normal" : infos(0), warning(1), erreur(2), "verbose" : detail(3), "debug" : debug(4)
     const char *DEVICE_NAME = "sensor9";  // nom du device a documenter
 
 //--------------------------------------------- configuration mesures
-    #define TEMPS_CYCLE     20000         // Temps de cycle : période d envoi des mesures au serveur en millisecondes
+    int     TEMPS_CYCLE   = 20000;        // Temps de cycle : période d envoi des mesures au serveur en millisecondes
     #define COEF_FILTRAGE   0.5           // filtrage AR simple : xf(t) = coef * xf(t-1) + (1-coef) * x(t)
     #define NB_MESURE       5             // nombre de mesure élémentaires dans le temps de cycle pour calcul du niveau de qualité
     #define VALEUR_MIN_PM   0.0           // limite mini autorisee pour les PM
     #define VALEUR_MAX_PM   1000.0        // limite maxi autorisee pour les PM
     #define SEUIL_BON_PM    10.0          // seuil affichage LED pour les PM
     #define SEUIL_MOYEN_PM  20.0          // seuil affichage LED pour les PM
-    const int M_LED       = M_PM25;       // choix de la mesure à afficher
+    int     M_LED_DEFAUT  = M_PM25;       // choix de la mesure à afficher
 
 //--------------------------------------------- parametres wifi
   #ifdef RESEAUWIFI

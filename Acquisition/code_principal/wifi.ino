@@ -1,5 +1,14 @@
 #ifdef RESEAUWIFI
 //-----------------------------------------------------------------------------------------------------------------------------
+  void DemarreWiFi(boolean memIdentifiant, WiFiManager *wifiManager) {
+    if (!memIdentifiant) wifiManager->resetSettings();             // garder en mémoire ou non les anciens identifiants
+    wifiManager->autoConnect(AUTO_CONNECT);                        // connexion automatique au réseau précédent si MEMIDENTIFIANT = 1
+    boolean debugWiFi = (modeLog == String(LOG_DEBUG));
+    wifiManager->setDebugOutput(debugWiFi);                        // à revoir, marche pas
+    Log(3, "Connected to : " + WiFi.SSID(), WiFi.psk());
+    Log(0, "IP address : ", WiFi.localIP().toString());
+  }
+//-----------------------------------------------------------------------------------------------------------------------------
   String GenereJSONparam() { 
     const size_t capacity = JSON_OBJECT_SIZE(10);
     DynamicJsonDocument param(capacity);
@@ -8,6 +17,7 @@
     param["feeling"]              = ressenti;
     param["mode_fonctionnement"]  = modeFonctionnement;
     param["mode_log"]             = modeLog;
+    //param["mode_lum"]             = modeLuminosite;
     param["niv_batt"]             = String(niveauBatterie);
     serializeJson(param, JSONmessage);
     return JSONmessage;
@@ -28,8 +38,13 @@
     data["taux_erreur_pm25"]  = String(mes[M_PM25].tauxErreur, 2);
     data["taux_erreur_pm10"]  = String(mes[M_PM10].tauxErreur, 2);
     data["feeling"]           = ressenti;
+#if GPS
     data["latitude"]          = latitude;
     data["longitude"]         = longitude;
+#else
+    data["latitude"]          = "";
+    data["longitude"]         = "";
+#endif
     serializeJson(data, JSONmessage);
     return JSONmessage;
   }
@@ -111,9 +126,10 @@
         Log(2, "ouverture fichier impossible", "");
       } else {
         total = total + "\n" + JSONmesure;
+        totalMesureNonReprise++;
         ficMes.print(total);
         ficMes.close();
-        Log(3, "total stocke apres ajout : \n" + total, "");
+        Log(3, "total stocke apres ajout : " + totalMesureNonReprise, "");
       }
     }
   }
@@ -141,6 +157,7 @@
     String mesureNonReprise = "";
     String JSONdata = "";
     String retourData = "";
+    int    total = 0;
     theme = "wifi    ";
     ficMes = SPIFFS.open(FIC_BUF, "r");
     if (!ficMes) {
@@ -150,7 +167,10 @@
         JSONdata = ficMes.readStringUntil('\n');
         if (JSONdata.length() > 10)  {
           retourData = EnvoiJSON(url, JSONdata);
-          if (retourData == "") { mesureNonReprise += ("\n" + JSONdata); }
+          if (retourData == "") { 
+            mesureNonReprise += ("\n" + JSONdata); 
+            total++;
+          }
         }
       }
       ficMes.close(); delay(50);
@@ -160,9 +180,10 @@
       } else {
         ficMes.print(mesureNonReprise);
         ficMes.close();
+        totalMesureNonReprise = total;
       }
       if (mesureNonReprise.length() > 10) {
-        Log(3, "total stocke apres reprise : \n" + mesureNonReprise, "");
+        Log(3, "total stocke apres reprise : " + totalMesureNonReprise, "");
       }
     }
   }
@@ -201,41 +222,41 @@
       int c2 = param0bleu["c2"];
       int c3 = param0bleu["c3"];
       if ((c1 > -1) & (c1 < 256) & (c2 > -1) & (c2 < 256) & (c3 > -1) & (c3 < 256) ) {
-        if ( (c1 != bleu[0]) | (c2 != bleu[1]) | (c3 != bleu[2]) ) {
+        if ( (c1 != BLEU[0]) | (c2 != BLEU[1]) | (c3 != BLEU[2]) ) {
           Log(0,"nouvelle couleur bleu : ", String(c1) + " " + String(c2) + " " + String(c3));
-          bleu[0] = c1; bleu[1] = c2; bleu[2] = c3;}
+          BLEU[0] = c1; BLEU[1] = c2; BLEU[2] = c3;}
       } else {
         Log(4,"couleur bleu incorrecte : ", String(c1) + " " + String(c2) + " " + String(c3));
       }
       int pNiveauFort = param0["niveau_fort"];
       if ((pNiveauFort > 0) & (pNiveauFort < 101)) {
-        if (pNiveauFort != niveauFort) {
+        if (pNiveauFort != NIVEAU_FORT) {
           Log(0,"nouveau niveau fort : ", String(pNiveauFort)); 
-          niveauFort = pNiveauFort;}
+          NIVEAU_FORT = pNiveauFort;}
       } else {
         Log(4,"niveau fort incorrect : ", String(pNiveauFort));
       }
       int pNiveauMoyen = param0["niveau_moyen"];
       if ((pNiveauMoyen > 0) & (pNiveauMoyen < 101)) {
-        if (pNiveauMoyen != niveauMoyen) {
+        if (pNiveauMoyen != NIVEAU_MOYEN) {
           Log(0,"nouveau niveau moyen : ", String(pNiveauMoyen));
-          niveauMoyen = pNiveauMoyen;}
+          NIVEAU_MOYEN = pNiveauMoyen;}
       } else {
         Log(4,"niveau moyen incorrect : ", "");
       }
       int pNiveauFaible = param0["niveau_faible"];
       if ((pNiveauFaible > 0) & (pNiveauFaible < 101)) {
-        if (pNiveauFaible != niveauFaible) {
+        if (pNiveauFaible != NIVEAU_FAIBLE) {
           Log(0,"nouveau niveau faible : ", String(pNiveauFaible));
-          niveauFaible = pNiveauFaible;}
+          NIVEAU_FAIBLE = pNiveauFaible;}
       } else {
         Log(4,"niveau faible incorrect : ", "");
       }
       int pTempsCycle = param0["temps_cycle"];
       if ((pTempsCycle > 2000) & (pTempsCycle < 3600000)) {
-        if (pTempsCycle != tempsCycle) {
+        if (pTempsCycle != TEMPS_CYCLE) {
           Log(0,"nouveau temps de cycle en ms : ", String(pTempsCycle));
-          tempsCycle = pTempsCycle;}
+          TEMPS_CYCLE = pTempsCycle;}
       } else {
         Log(4,"temps de cycle incorrect : ", "");
       }
@@ -251,62 +272,61 @@
     return err;
   }  
 //-----------------------------------------------------------------------------------------------------------------------------  
+  String ValideListe(const char* pVal, String val1, String val2, String val3, String valInit, String messageLog) {
+    String valNew = String(pVal);
+    String newVal = valInit;
+    if ((pVal != nullptr) & ((valNew == val1)
+      | (valNew == val2) | (valNew == val3))) { 
+      if (valNew != valInit) {
+        Log(0,"nouveau " + messageLog + " : ", valNew);
+        newVal = valNew;
+      }
+    } else Log(4,messageLog +" incorrect : ", valNew);        
+    return newVal;
+  }
+//-----------------------------------------------------------------------------------------------------------------------------  
   boolean ActualisationParametres(String parametres){      
     theme = "param   ";
-    const size_t capacity = JSON_OBJECT_SIZE(8) + 140;
+    const size_t capacity = JSON_OBJECT_SIZE(10) + 180;
     DynamicJsonDocument param(capacity);
     DeserializationError err = deserializeJson(param, parametres);
     if (err) {
       Log(2, "impossible de decoder les parametres", "");
     } else {
-      const char* pModeLog = param["mode_log"];
-      if ((pModeLog != nullptr) & ((String(pModeLog) == "normal")
-        | (String(pModeLog) == "verbose") | (String(pModeLog) == "debug"))) { 
-        if (String(pModeLog) != modeLog) {
-          Log(0,"nouveau mode de log : ", String(pModeLog));
-          modeLog = String(pModeLog);}
-      } else {
-        Log(4,"mode de log incorrect : ", String(pModeLog));        
-      }
-      const char* pModeFonctionnement = param["mode_fonctionnement"];
-      if ((pModeFonctionnement != nullptr) & ((String(pModeFonctionnement) == MODE_ECO)
-        | (String(pModeFonctionnement) == MODE_NORMAL) | (String(pModeFonctionnement) == MODE_FORT)
-        |  (String(pModeFonctionnement) == MODE_VEILLE))) { 
-        if (String(pModeFonctionnement) != modeFonctionnement) {
-          Log(0,"nouveau mode de fonctionnement : ", String(pModeFonctionnement)); }
-        modeFonctionnement = String(pModeFonctionnement); 
-      } else {
-        Log(4,"mode de fonctionnement incorrect : ", String(pModeFonctionnement));        
-      }
+      const char* pResetWiFi = param["reset_wifi"];
+      resetWiFi = ValideListe(pResetWiFi, RESET_AUCUN, RESET_AUTO, RESET_MANU, resetWiFi, "mode de redemarrage");
+      
+      const char* pModeLum   = param["mode_lum"];
+      modeLuminosite = ValideListe(pModeLum, LUM_NORMAL, LUM_ECO, LUM_FORT, modeLuminosite, "mode de luminosite");
+      
+      const char* pModeLog   = param["mode_log"];
+      modeLog = ValideListe(pModeLog, LOG_NORMAL, LOG_VERBOSE, LOG_DEBUG, modeLog, "mode de log");
+      
+      const char* pModeFonctionnement = param["mode_fonc"];
+      modeFonctionnement = ValideListe(pModeFonctionnement, MODE_NORMAL, MODE_VEILLE, MODE_AUTONOME, modeFonctionnement, "mode de fonctionnement");
+
       const char* pRessenti = param["ressenti"];
-      if ((pRessenti != nullptr) & ((String(pRessenti) == RESSENTI_BIEN)
-        | (String(pRessenti) == RESSENTI_NORMAL) | (String(pRessenti) == RESSENTI_PASBIEN))) { 
-        if (String(pRessenti) != ressenti) {
-          Log(0,"nouveau ressenti : ", String(pRessenti)); }
-        ressenti = String(pRessenti); 
-      } else {
-        Log(4,"ressenti incorrect : ", String(pRessenti));        
-      }
+      ressenti = ValideListe(pRessenti, RESSENTI_BIEN, RESSENTI_NORMAL, RESSENTI_PASBIEN, ressenti, "ressenti");
     }
     return err;
   }  
 //-----------------------------------------------------------------------------------------------------------------------------  
   void SendMesureWeb(){      
     theme = "page web";
-    if( ! server.hasArg("parametre") || server.arg("parametre") == NULL ) {
+    if( !server.hasArg("par") || server.arg("par") == NULL ) {
       server.send(400, "text/plain", "400: Invalid Request");
       Log(2, "retour page web errone", "");
       return;
     }
                         // récupération des parametres
-    String parametres = server.arg("parametre");
-    Log(4, "parametres : " + parametres, "");
-    boolean erreur = ActualisationParametres(parametres);  
+    String parametres = server.arg("par");
                         // envoi des valeurs instantanées à la page web
     String valeurInst = "{\"PM25\" : " + String(pm[M_PM25]) + ", \"PM10\" : " + String(pm[M_PM10]) + "}";
-    Log(4, "json mesure: " + valeurInst, "");
+    //Log(4, "json mesure: " + valeurInst, "");
     server.send(200, "application/json", valeurInst);
+    Log(4, "parametres : " + parametres, "");
     Log(3, "envoi mesures", valeurInst);
+    boolean erreur = ActualisationParametres(parametres);  
                         // envoi des paramètres au serveur
     String url = SERVEUR_AI4GOOD_PARAM;
     String JSONparam = GenereJSONparam();

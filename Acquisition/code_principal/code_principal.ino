@@ -2,33 +2,45 @@
   Option de compilation et téléversement :
       ESP     -> Type de carte : Node MCU 1.0(ESP-12E Module) / Options : 80 MHz, Flash, 4M (3M SPIFFS), v2 Lower Memory, Disabled, None, Only Sketch / programmateur : Arduino as ISP / Outils : ESP8266 Sketch Data Upload (envoi des fichiers Data)
       MKR1200 -> Type de carte : ARDUINO MKR FOX 1200 / programmateur : ATMEL-ICE
-*/
-//#define BLYNK_PRINT Serial
-//#include <BlynkSimpleEsp8266.h>
 
+  Paramètres à vérifier avant compilation :
+  
+    const char *DEVICE_NAME = "sensorxxx";  
+    #define SDS               true       (si SDS présent)
+    #define GPS               true       (si GPS présent)
+    #define LED_PIN           D8         (si on est sur un sac)
+    String MODE_LOG_DEFAUT  = LOG_NORMAL   (si on est sur un fonctionnement de test)
+    int     M_LED_DEFAUT  = M_PM25;       // choix de la mesure à afficher
+    #define LED_PIN           D1          // affichage de l'état des mesures pour ESP (D8 pour les sacs, D1 sur ESP de test Philippe)
+    #define RXPIN             14          // laison série capteur (GPIO14 = D5)
+    #define TXPIN             12          // laison série capteur (GPIO12 = D6)
+    #define RXGPS             2           // laison série GPS     (GPIO2  = D4)
+
+  Téléchargement Data (SPIFFS) à faire avant utilisation
+  
+*/
 //---------------------------------------------include  --------------------------------------------------------------------------------
 #include "parametre.h"                                            // Déclaration de constantes, librairies et de structures de données
 //---------------------------------------------variables--------------------------------------------------------------------------------
   // variables générales
   String  theme             = "Global  ";                         // précision utilisée pour les logs
+  boolean etatWifiConnecte  = true;                               // etat du wifi
+  boolean etatMesureSature  = false;                              // etat de saturation du stockage des mesures
   String  modeFonctionnement= MODE_NORMAL;                        // voir valeur initiale dans parametre.h
-  String  modeLog           = MODE_LOG;                           // voir valeur initiale dans parametre.h
+  String  modeLuminosite    = LUM_NORMAL;                         // voir valeur initiale dans parametre.h
+  String  modeLog           = LOG_DEFAUT;                         // voir valeur initiale dans parametre.h
+  String  resetWiFi         = RESET_AUCUN;                        // voir valeur initiale dans parametre.h
   int     tempsCycle        = TEMPS_CYCLE;                        // voir valeur initiale dans parametre.h
-  int     bleu  [3]         = {BLEU[0],    BLEU[1],  BLEU[2]};
-  int     rouge [3]         = {ROUGE[0],  ROUGE[1], ROUGE[2]};
-  int     vert  [3]         = {VERT[0],    VERT[1],  VERT[2]};
-  int     orange[3]         = {ORANGE[0],ORANGE[1],ORANGE[2]};
-  int     violet[3]         = {VIOLET[0],VIOLET[1],VIOLET[2]};
-
-  // variables affichage LED
-  int     mesureLED         = M_LED;                              // voir valeur initiale dans parametre.h
-  int     niveauAffichage   = NIVEAU_MOYEN;                       // voir les niveaux dans parametre.h
-  int     niveauFort        = NIVEAU_FORT;                        // voir valeur initiale dans parametre.h
-  int     niveauMoyen       = NIVEAU_MOYEN;                       // voir valeur initiale dans parametre.h
-  int     niveauFaible      = NIVEAU_FAIBLE;                      // voir valeur initiale dans parametre.h
-  float   mesValeurLED      = 0;                                  // valeur issue des mesures à afficher sur la LED
+  boolean memIdentifiant    = MEM_IDENTIFIANT;                    // voir valeur initiale dans parametre.h
+  int totalMesureNonReprise = 0;                                  // compteur de mesure dans SPIFFS
   int     niveauBatterie    = 100;                                // 
   boolean niveauBatterieBas = false;                              // 
+
+  // variables affichage LED
+  int     mesureLED         = M_LED_DEFAUT;                       // voir valeur initiale dans parametre.h
+  int     niveauAffichage   = NIVEAU_MOYEN;                       // voir les niveaux dans parametre.h
+  float   mesValeurLED      = M_LED_DEFAUT;                       // valeur issue des mesures à afficher sur la LED
+
   // variables périodicité
   float   temps_ref_mesure  = 0;                                  // compteur de temps intermédiaire de 0 à tempsCycle/NB_MESURE pour les mesures
   float   temps_ref_parametre = 0;                                // compteur de temps intermédiaire de 0 à tempsCycle/NB_MESURE pour les paramètres
@@ -72,6 +84,7 @@
 #ifdef RESEAUWIFI
   ADC_MODE(ADC_VCC);                                                      // autorise la lecture de tension (non compatible avec l'utilisation de A0 qui doit rester en l'air) 
   ESP8266WebServer server(80);                                            // ecoute sur le port 80
+  WiFiManager wifiManager;                                                // WiFi option non fixe
 #endif
 #if SDS
  #ifdef BOARDSIGFOX
@@ -154,14 +167,9 @@
     ficMes.close();                                               // pour vider le fichier des mesures en attente
     */
                                                                   // initialisation Serveur WiFi
-    WiFi.mode(WIFI_AP_STA);                                       // mode mixte server et client
-    WiFiManager wifiManager;                                      // WiFi option non fixe
-    if (MEM_IDENTIFIANT == 0){wifiManager.resetSettings();}       // garder en mémoire ou non les anciens identifiants
-    wifiManager.autoConnect(AUTO_CONNECT);                        // connexion automatique au réseau précédent si MEMIDENTIFIANT = 1
-    wifiManager.setDebugOutput(String(MODE_LOG) == String("debug"));      // à revoir, marche pas
     theme = "wifi    ";
-    Log(3, "Connected to : " + WiFi.SSID(), WiFi.psk());
-    Log(0, "IP address : ", WiFi.localIP().toString());
+    WiFi.mode(WIFI_AP_STA);                                       // mode mixte server et client
+    DemarreWiFi(memIdentifiant, &wifiManager);
                                                                   // initialisation token et date
     MajToken();
                                                                   // initialisation serveur web
@@ -172,9 +180,10 @@
     server.begin();
 #endif    
     StripAffiche("controleur démarré");
-    Log(0, "controleur demarre en mode : MODE_LOG = ", String(MODE_LOG));
-    
-    //Blynk.begin("YF4nOYISynxxazzjW8aXMS1CrB3-H_B5", "Freebox-Lilith", "youwontforgetmyname");
+    Log(0, "controleur demarre en mode : ", modeLog);
+#ifdef RESEAUWIFI
+    RepriseEnvoiWifiData();                                        // renvoi des mesures stockées dans SPIFFS
+#endif
   }
 /*
  ****************************************************************************************************************
@@ -183,7 +192,7 @@
 */
   void loop() {
     
-//--------------------------------------------- mise à jour des paramètres --------------------------------------------------------------------------------                                                                               
+//--------------------------------------------- mise à jour des variables et paramètres --------------------------------------------------------------------------------                                                                               
 #ifdef RESEAUWIFI
     theme = "wifi    ";
     if ( (millis() - temps_ref_parametre) >= float(tempsCycle)/float(NB_MESURE) ) {     // mise à jour des variables(traitement des données du serveur)
@@ -192,9 +201,18 @@
     }
     WiFiClient client;                                                                  // mise à jour des paramètres(traitement des requetes des pages web)
     server.handleClient();
+//--------------------------------------------- gestion du reset wifi --------------------------------------------------------------------------------      
+    if (resetWiFi != RESET_AUCUN) {
+      boolean identifiant = (resetWiFi == RESET_AUTO);
+      StripAffiche("démarrage");
+      DemarreWiFi(identifiant, &wifiManager);
+      resetWiFi = RESET_AUCUN;  
+      StripAffiche("controleur démarré");
+      Log(0, "controleur redemarre en mode : ", modeLog);
+    }
 #endif    
 //--------------------------------------------- gestion des modes de fonctionnement --------------------------------------------------------------------------------                                                                               
-    if (modeFonctionnement == "veille") {
+    if (modeFonctionnement == MODE_VEILLE) {
       theme = "capteur ";
       StripAffiche("mode veille SDS");
 #if SDS
@@ -211,12 +229,12 @@
       }*/
 #endif
       theme = "global  ";
-      if (modeFonctionnement == "economie") {
-          niveauAffichage = niveauFaible;
-      } else if (modeFonctionnement == "renforce"){
-          niveauAffichage = niveauFort;        
+      if (modeLuminosite == LUM_ECO) {
+          niveauAffichage = NIVEAU_FAIBLE;
+      } else if (modeLuminosite == LUM_FORT){
+          niveauAffichage = NIVEAU_FORT;        
       } else {
-          niveauAffichage = niveauMoyen;        
+          niveauAffichage = NIVEAU_MOYEN;        
       }
 //--------------------------------------------- mise à jour des coordonnées GPS -------------------------------------------------------------------------------------------                                                                               
 #if GPS
@@ -228,7 +246,7 @@
       }
 #endif
 //--------------------------------------------- boucle de réalisation des mesures intermédiaires --------------------------------------------------------------------------------                                                                                     
-      if ( (millis() - temps_ref_mesure) >= float(tempsCycle)/float(NB_MESURE) ) {
+      if ( (millis() - temps_ref_mesure) >= float(TEMPS_CYCLE)/float(NB_MESURE) ) {
           theme = "mesure  ";
           temps_ref_mesure = millis();
           StripAffiche("debut mesure");
@@ -242,7 +260,9 @@
           theme = "mesure  ";
           nbMesureElem = 0;
 #ifdef RESEAUWIFI
-          RepriseEnvoiWifiData();                             // essai de renvoi des mesures à renvoyer stockées dans SPIFFS
+          if (totalMesureNonReprise > 0) {
+              RepriseEnvoiWifiData();                             // essai de renvoi des mesures à renvoyer stockées dans SPIFFS
+          }
 #endif
           GenereMesure();                                     // calcul de la mesure moyenne dans mes.xxx
           if (MesureOk()) {
@@ -276,5 +296,4 @@
       }
 #endif
     }
-    //Blynk.run();
   }
