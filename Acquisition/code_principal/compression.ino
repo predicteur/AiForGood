@@ -5,53 +5,44 @@
       float secart[len];
       if (len == 1){
           coef.b = serie[0];
-          coef.a = 0.0;
-      } else if (len == 2){
+          coef.a = 0.0; }
+      else if (len == 2){
           coef.b = 2.0 * serie[0] - serie[1];
-          coef.a = serie[1] - serie[0];
-      } else {
+          coef.a = serie[1] - serie[0];  }
+      else {
           for (int i=0; i<len; i++){
             sx += (i+1);
             sy += serie[i];
             sxy += (i+1) * serie[i];
-            sx2 += (i+1) * (i+1);
-          }
+            sx2 += (i+1) * (i+1);  }
           coef.a = (sx * sy - len * sxy) / (sx * sx - len * sx2);
-          coef.b = sy / len - coef.a * sx / len;
-      }
+          coef.b = sy / len - coef.a * sx / len;  }
       ecart(coef.a, coef.b, serie, secart, len);
       coef.ect = et(secart, len);
   }
 //-----------------------------------------------------------------------------------------------------------------------------
   float rega(float serie[], float a, int len){   // a fixé, calcul de b (b = moyenne(yi) - a * moyenne(xi))
       float sx = 0.0, sy = 0.0, b = 0.0;
-      if (len == 1){
-          b = serie[0];
-      } else {
+      if (len == 1) b = serie[0];
+      else {
           for (int i=0; i<len; i++){
               sx += (i+1);
-              sy += serie[i];
-          }
-          b = sy / len - a * sx / len;
-      }
+              sy += serie[i];  }
+          b = sy / len - a * sx / len;  }
       return b;
   }
 //-----------------------------------------------------------------------------------------------------------------------------
   void normalisation(float serie[], float sserie[], float mini, float maxi, float c, int len){
       float minic = pow(mini, c);
       float maxic = pow(maxi, c);
-      for (int i=0; i<len; i++){
-          sserie[i] = (pow(min(maxi, max(mini, serie[i])), c) - minic)/(maxic - minic);
-      }
+      for (int i=0; i<len; i++)  sserie[i] = (pow(min(maxi, max(mini, serie[i])), c) - minic)/(maxic - minic);
       PrSerie(5, sserie,TAILLE_ECH, "sserie");
   }
 //-----------------------------------------------------------------------------------------------------------------------------
   void denormalisation(float serie[], float mini, float maxi, float c, int len){
       float minic = pow(mini, c);
       float maxic = pow(maxi, c);
-      for (int i=0; i<len; i++){
-            serie[i] = min(maxi, max(mini, float(pow(minic + (maxic - minic) * serie[i], 1.0 / c))));
-      }
+      for (int i=0; i<len; i++)  serie[i] = min(maxi, max(mini, float(pow(minic + (maxic - minic) * serie[i], 1.0 / c))));
   }
 //-----------------------------------------------------------------------------------------------------------------------------
   void codage(){
@@ -62,8 +53,7 @@
       coefi.ect = conversion(coefc.ect, 0                     , 0.5                   , BITS);
       for (int i=0; i<NBREG; i++){
           coefi.a1[i] = conversion(coefc.a1[i], -PLA*et0/TAILLE_ECH*2.0, PLA*et0/TAILLE_ECH*2.0, BITC);
-          coefi.b1[i] = conversion(coefc.b1[i], -PLB*et0               , PLB*et0               , BITC);
-      }
+          coefi.b1[i] = conversion(coefc.b1[i], -PLB*et0               , PLB*et0               , BITC);  }
   }
 //-----------------------------------------------------------------------------------------------------------------------------
   void decodage(){
@@ -73,8 +63,7 @@
       coefp.ect = conversionb(coefi.ect, 0                     , 0.5                  , BITS);
       for (int i=0; i<NBREG; i++){
           coefp.a1[i] = conversionb(coefi.a1[i], -PLA*coefp.et0/TAILLE_ECH*2.0, PLA * coefp.et0/TAILLE_ECH*2.0, BITC);
-          coefp.b1[i] = conversionb(coefi.b1[i], -PLB*coefp.et0               , PLB * coefp.et0               , BITC);
-      }
+          coefp.b1[i] = conversionb(coefi.b1[i], -PLB*coefp.et0               , PLB * coefp.et0               , BITC);  }
   }
 //-----------------------------------------------------------------------------------------------------------------------------
   void compression(){
@@ -90,17 +79,13 @@
           sousSerie(y1ecr, y2, i, TAILLE_ECH2);
           reg(y2, TAILLE_ECH2);
           coefc.a1[i] = coef.a;
-          coefc.b1[i] = coef.b;
-      }
+          coefc.b1[i] = coef.b;  }
   }
 //-----------------------------------------------------------------------------------------------------------------------------
   void decompression(){
       estim(coefp.a0, coefp.b0, TAILLE_ECH, y0fon);
       for (int i=0; i<NBREG; i++){
-        for (int j=0; j<TAILLE_ECH2; j++){
-            y0fon[i*TAILLE_ECH2+j] += (coefp.a1[i] * (j +1) + coefp.b1[i]);
-        }
-      }
+        for (int j=0; j<TAILLE_ECH2; j++) y0fon[i*TAILLE_ECH2+j] += (coefp.a1[i] * (j +1) + coefp.b1[i]);  }
       denormalisation(y0fon, MINI, MAXI, RACINE, TAILLE_ECH);
   }
 //-----------------------------------------------------------------------------------------------------------------------------
@@ -114,8 +99,7 @@
       for (int i=0; i<NBREG; i++){
         coefc.a1[i] = coefp.a1[i];
         sousSerie(y1, y2, i, TAILLE_ECH2);
-        coefc.b1[i] = rega(y2, coefc.a1[i], TAILLE_ECH2);
-      }
+        coefc.b1[i] = rega(y2, coefc.a1[i], TAILLE_ECH2);  }
   }
 //-----------------------------------------------------------------------------------------------------------------------------
   void codbin(){
@@ -126,8 +110,7 @@
       addbin(coefi.ect, payl, BITS, 3*BITS );
       for (int i=0; i<NBREG; i++){
           addbin(coefi.a1[i], payl, BITC, 4*BITS+(i*2)  *BITC );
-          addbin(coefi.b1[i], payl, BITC, 4*BITS+(i*2+1)*BITC );
-      }
+          addbin(coefi.b1[i], payl, BITC, 4*BITS+(i*2+1)*BITC );  }
       payload.msg1 = decbin(payl, TAILLE_MSG, 0);
       payload.msg2 = decbin(payl, TAILLE_MSG, 32);
       payload.msg3 = decbin(payl, TAILLE_MSG, 64);
@@ -144,8 +127,7 @@
       coefi.ect = decbin(payl, BITS, 3*BITS);
       for (int i=0; i<NBREG; i++){
           coefi.a1[i] = decbin(payl, BITC, 4*BITS+(i*2)  *BITC);
-          coefi.b1[i] = decbin(payl, BITC, 4*BITS+(i*2+1)*BITC);
-      }
+          coefi.b1[i] = decbin(payl, BITC, 4*BITS+(i*2+1)*BITC);  }
   }
  //-----------------------------------------------------------------------------------------------------------------------------
   void compress(){

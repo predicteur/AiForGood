@@ -23,10 +23,11 @@
 #include "parametre.h"                                            // Déclaration de constantes, librairies et de structures de données
 //---------------------------------------------variables--------------------------------------------------------------------------------
   // variables générales
+  boolean autonom           = false;
   String  theme             = "Global  ";                         // précision utilisée pour les logs
   boolean etatWifiConnecte  = true;                               // etat du wifi
   boolean etatMesureSature  = false;                              // etat de saturation du stockage des mesures
-  String  modeFonctionnement= MODE_NORMAL;                        // voir valeur initiale dans parametre.h
+  String  modeFonc          = MODE_NORMAL;                        // voir valeur initiale dans parametre.h
   String  modeLuminosite    = LUM_NORMAL;                         // voir valeur initiale dans parametre.h
   String  modeLog           = LOG_DEFAUT;                         // voir valeur initiale dans parametre.h
   String  resetWiFi         = RESET_AUCUN;                        // voir valeur initiale dans parametre.h
@@ -39,8 +40,7 @@
   // variables affichage LED
   int     mesureLED         = M_LED_DEFAUT;                       // voir valeur initiale dans parametre.h
   int     niveauAffichage   = NIVEAU_MOYEN;                       // voir les niveaux dans parametre.h
-  float   mesValeurLED      = M_LED_DEFAUT;                       // valeur issue des mesures à afficher sur la LED
-
+  
   // variables périodicité
   float   temps_ref_mesure  = 0;                                  // compteur de temps intermédiaire de 0 à tempsCycle/NB_MESURE pour les mesures
   float   temps_ref_parametre = 0;                                // compteur de temps intermédiaire de 0 à tempsCycle/NB_MESURE pour les paramètres
@@ -110,15 +110,16 @@
 */
   void setup() {
   
+//--------------------------------------------- initialisation controleur et affichage --------------------------------------------------------------------------------                                                                                 
     theme = "setup   ";
-    Serial.begin(115200);                                       // initialisation liaison série
+    Serial.begin(115200);                                       
     delay(10); Serial.println('\n');
                                                                 // initialisation données et affichage
     CreerMesure();                                              // Création pm10 et pm2_5
     strip.begin();                                              // INITIALIZE NeoPixel strip object (REQUIRED)
     strip.show();                                               // Turn OFF all pixels
-    StripAffiche("démarrage");
-  
+    StripAffiche("demarrage");
+//--------------------------------------------- initialisation capteurs et équipements --------------------------------------------------------------------------------                                                                                 
     theme = "capteur ";
 #if SDS                                                         // initialisation capteur PM
     sds.begin();
@@ -145,22 +146,18 @@
 #if Z14A                                                        // initialisation Z14A  
     Serial1.begin(9600);                                        // UART hardware
 #endif
+//--------------------------------------------- initialisation communication --------------------------------------------------------------------------------                                                                                 
 #ifdef BOARDSIGFOX                                              // initialisation Sigfox
-    if (!SigFox.begin()) {
-      reboot();
-    }
+    theme = "SIGFOX  ";
+    if (!SigFox.begin()) reboot();
     SigFox.end();
-    if (oneshot) {
-      SigFox.debug();
-    }
+    if (oneshot) SigFox.debug();
 #endif
 #ifdef RESEAUWIFI
     theme = "ESP     ";
-    if (!SPIFFS.begin()){                                         // initialisation serveur de fichier
-      Log(2, "SPIFFS Mount failed", "");
-    } else {
-      Log(3, "SPIFFS Mount succesfull", "");
-    }
+    if (!SPIFFS.begin()) Log(2, "SPIFFS Mount failed", "");     // initialisation serveur de fichier
+    else Log(3, "SPIFFS Mount succesfull", "");
+ 
     /*// vidage du fichier des mesures en attente d'envoi (doit être en commentaires)
     ficMes = SPIFFS.open(FIC_BUF, "w");                           // pour vider le fichier des mesures en attente
     ficMes.println("vide");                                       // pour vider le fichier des mesures en attente
@@ -179,7 +176,8 @@
     server.serveStatic("/StyleIndex.css", SPIFFS, "/StyleIndex.css");
     server.begin();
 #endif    
-    StripAffiche("controleur démarré");
+//--------------------------------------------- initialisation démarrage --------------------------------------------------------------------------------                                                                                 
+    StripAffiche("controleur demarre");
     Log(0, "controleur demarre en mode : ", modeLog);
 #ifdef RESEAUWIFI
     RepriseEnvoiWifiData();                                        // renvoi des mesures stockées dans SPIFFS
@@ -190,60 +188,56 @@
              Boucle 
  ****************************************************************************************************************
 */
-  void loop() {
-    
-//--------------------------------------------- mise à jour des variables et paramètres --------------------------------------------------------------------------------                                                                               
+  void loop() {    
+//--------------------------------------------- mise à jour des variables serveur et paramètres page web ----------------------------------------------------------                                                                               
 #ifdef RESEAUWIFI
     theme = "wifi    ";
     if ( (millis() - temps_ref_parametre) >= float(tempsCycle)/float(NB_MESURE) ) {     // mise à jour des variables(traitement des données du serveur)
       temps_ref_parametre = millis();
-      AjustementVariables();
-    }
+      if (!autonom & modeFonc != MODE_VEILLE) AjustementVariables();  }
     WiFiClient client;                                                                  // mise à jour des paramètres(traitement des requetes des pages web)
     server.handleClient();
-//--------------------------------------------- gestion du reset wifi --------------------------------------------------------------------------------      
+//--------------------------------------------- gestion du reset wifi ----------------------------------------------------------------------------------------------      
     if (resetWiFi != RESET_AUCUN) {
       boolean identifiant = (resetWiFi == RESET_AUTO);
-      StripAffiche("démarrage");
+      StripAffiche("demarrage");
       DemarreWiFi(identifiant, &wifiManager);
       resetWiFi = RESET_AUCUN;  
-      StripAffiche("controleur démarré");
-      Log(0, "controleur redemarre en mode : ", modeLog);
-    }
+      StripAffiche("controleur demarre");
+      Log(0, "controleur redemarre en mode : ", modeLog);  
+      RepriseEnvoiWifiData(); }                                       // renvoi des mesures stockées dans SPIFFS
 #endif    
 //--------------------------------------------- gestion des modes de fonctionnement --------------------------------------------------------------------------------                                                                               
-    if (modeFonctionnement == MODE_VEILLE) {
-      theme = "capteur ";
-      StripAffiche("mode veille SDS");
+    theme = "global  ";
+    autonom = (modeFonc == MODE_AUTONOME);
+    if (modeFonc == MODE_VEILLE) StripAffiche("mode veille");
+    else if (etatMesureSature) {
+      StripAffiche("mesures saturees"); 
+      if (!autonom) RepriseEnvoiWifiData();  }                                      // renvoi des mesures stockées dans SPIFFS
 #if SDS
       /*WorkingStateResult etatSDS = sds.sleep();
       if (etatSDS.isWorking()) {
         Log(1, "Probleme de mise en sommeil SDS", "");
       }*/
 #endif
-    } else {
+    else {
 #if SDS
       /*WorkingStateResult etatSDS = sds.wakeup();
       if (!etatSDS.isWorking()) {
         Log(1, "Probleme de reveil SDS", "");
       }*/
 #endif
-      theme = "global  ";
-      if (modeLuminosite == LUM_ECO) {
-          niveauAffichage = NIVEAU_FAIBLE;
-      } else if (modeLuminosite == LUM_FORT){
-          niveauAffichage = NIVEAU_FORT;        
-      } else {
-          niveauAffichage = NIVEAU_MOYEN;        
-      }
+      if      (modeLuminosite == LUM_ECO)   niveauAffichage = NIVEAU_FAIBLE;
+      else if (modeLuminosite == LUM_FORT)  niveauAffichage = NIVEAU_FORT;        
+      else                                  niveauAffichage = NIVEAU_MOYEN;        
 //--------------------------------------------- mise à jour des coordonnées GPS -------------------------------------------------------------------------------------------                                                                               
 #if GPS
-      while (GpsSerial.available() > 0) { gps.encode(GpsSerial.read());}
+      theme = "GPS     ";
+      while (GpsSerial.available() > 0) gps.encode(GpsSerial.read());
       if (gps.location.isUpdated()) {
         longitude = String(gps.location.lng(), 7);
         latitude  = String(gps.location.lat(), 7);
-        Log(4, "Cooordonnées GPS : " + longitude + " " + latitude,"");
-      }
+        Log(4, "Cooordonnées GPS : " + longitude + " " + latitude,"");  }
 #endif
 //--------------------------------------------- boucle de réalisation des mesures intermédiaires --------------------------------------------------------------------------------                                                                                     
       if ( (millis() - temps_ref_mesure) >= float(TEMPS_CYCLE)/float(NB_MESURE) ) {
@@ -253,37 +247,31 @@
           LireCapteur();                                      // lecture des données dans pm[]
           CalculMesure();                                     // ajout des valeurs instantanées dans mes.xxx
           StripAffiche("fin mesure");
-          nbMesureElem ++;
-      }
+          nbMesureElem ++;  }
 //--------------------------------------------- boucle principale de mesure --------------------------------------------------------------------------------                                                                               
       if ( nbMesureElem >= NB_MESURE ){
           theme = "mesure  ";
           nbMesureElem = 0;
 #ifdef RESEAUWIFI
-          if (totalMesureNonReprise > 0) {
-              RepriseEnvoiWifiData();                             // essai de renvoi des mesures à renvoyer stockées dans SPIFFS
-          }
+          if ((totalMesureNonReprise > 0) & (!autonom)) RepriseEnvoiWifiData();    // essai de renvoi des mesures à renvoyer stockées dans SPIFFS
 #endif
           GenereMesure();                                     // calcul de la mesure moyenne dans mes.xxx
           if (MesureOk()) {
               PrMesure(3);                                     
 #ifdef RESEAUWIFI
-              EnvoiWifiData();                                // envoi sur le serveur (et stockage fichier si KO)
+              EnvoiWifiData(); }                               // envoi sur le serveur (et stockage fichier si KO)
 #else
-              GroupeMesure();                                 // ajout de la mesure au groupe de mesure à envoyer par Sigfox   
+              GroupeMesure();  }                               // ajout de la mesure au groupe de mesure à envoyer par Sigfox   
 #endif
-          } 
           else {
-              StripAffiche("mesure non envoyée"); delay(2000);
-          }
+            StripAffiche("mesure a afficher incorrecte");
+            delay(2000); }
           niveauBatterie = MesureBatterie();                  //  à mettre en place (mesure)
 #ifdef COMPRESSION
           nbMesureGroupe ++;
 #endif
-          mesValeurLED = mes[mesureLED].valeur;
-          UpdateLed();                                        // affichge du niveau sur les LED
-          InitMesureRessenti();                               // dépend de la gestion du ressenti (maintenu ou non maintenu) -> à clarifier
-      }
+          UpdateLed( mes[mesureLED].valeur );                 // affichge du niveau sur les LED
+          InitMesureRessenti(); }                             // dépend de la gestion du ressenti (maintenu ou non maintenu) -> à clarifier
 //--------------------------------------------- boucle d'envoi des données groupées --------------------------------------------------------------------------------                                                                               
 #ifdef COMPRESSION
       if ( nbMesureGroupe >= TAILLE_ECH ){
@@ -292,8 +280,7 @@
           PrSerie(y0init, TAILLE_ECH, "y0init");
           compress();                                          // compression des données
           PrSerie(y0fon, TAILLE_ECH, "y0fon apres compress");
-          EnvoiSigfox();                                       // envoi sigfox des données compressées
-      }
+          EnvoiSigfox(); }                                  // envoi sigfox des données compressées
 #endif
     }
   }
