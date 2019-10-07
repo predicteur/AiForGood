@@ -116,7 +116,7 @@
  ****************************************************************************************************************
 */
 //--------------------------------------------- configuration logicielle -----------------------------
-    int         MAX_STOCKAGE    = 200;         // nombre mxi de mesures stockées dans l'ESP
+    int         MAX_STOCKAGE    = 300;         // nombre mxi de mesures stockées dans l'ESP
     boolean     MEM_IDENTIFIANT = true;       // false : pas de mémorisation des accès WiFi, true : mémorisation  
     String      LOG_DEFAUT      = LOG_DEBUG;  // "normal" : infos(0), warning(1), erreur(2), "verbose" : detail(3), "debug" : debug(4)
     const char *DEVICE_NAME     = "sensor9";  // nom du device a documenter

@@ -89,31 +89,32 @@
                 if ((this.readyState == 4) & (this.status == 200 || this.status === 0) & (this.responseText != null)) { // avancement AJAX == 4 => Données complètement accessibles
                     var response = JSON.parse(this.responseText);
                     pm25.textContent = response.PM25;
-                    pm10.textContent = response.PM10;
-                }
-            }
+                    pm10.textContent = response.PM10; }  }
             lien = "/mesures.json" + "?par=" + JSON.stringify(parametre);
             console.log(lien);
             xhr.open("GET",lien, true);        
             xhr.send();
             parametre.reset_wifi        = "aucun";
-            parametre.ressenti          = "normal";
-        }
+            parametre.ressenti          = "normal";  }
+
         form.addEventListener("submit", function (e) {
-            parametre.mesure_led        = parseInt(form.elements.mesureLed.value);
-            parametre.ressenti          = form.elements.ressenti.value;
-            parametre.mode_fonc         = form.elements.modeFonc.value;
-            parametre.mode_log          = form.elements.modeLog.value;
-            parametre.mode_lum          = form.elements.modeLum.value;
-            parametre.reset_wifi        = form.elements.resetWiFi.value;
-            parametre.temps_cycle       = parseInt(form.elements.tempsCycle.value);
-            parametre.niveau_fort       = parseInt(form.elements.niveauFort.value);
-            parametre.niveau_moyen      = parseInt(form.elements.niveauMoyen.value);
-            parametre.niveau_faible     = parseInt(form.elements.niveauFaible.value);
-            form.elements.resetWiFi.value = "aucun";
-            form.elements.ressenti.value = "normal";
-            e.preventDefault(); // Annulation de l'envoi des données
-        });
+            parametre.mesure_led            = parseInt(form.elements.mesureLed.value);
+            parametre.ressenti              = form.elements.ressenti.value;
+            parametre.mode_fonc             = form.elements.modeFonc.value;
+            parametre.mode_log              = form.elements.modeLog.value;
+            parametre.mode_lum              = form.elements.modeLum.value;
+            parametre.reset_wifi            = form.elements.resetWiFi.value;
+            parametre.temps_cycle           = parseInt(form.elements.tempsCycle.value);
+            parametre.niveau_fort           = parseInt(form.elements.niveauFort.value);
+            parametre.niveau_moyen          = parseInt(form.elements.niveauMoyen.value);
+            parametre.niveau_faible         = parseInt(form.elements.niveauFaible.value);
+            form.elements.resetWiFi.value   = "aucun";
+            form.elements.ressenti.value    = "normal";
+            if (parametre.reset_wifi != "aucun") {
+                parametre.mode_fonc         = "normal";
+                form.elements.modeFonc.value = "normal"; }
+            e.preventDefault();  });                            // Annulation de l'envoi des données
+
         window.setInterval(updateData, 10000);
     </script>
 </body>

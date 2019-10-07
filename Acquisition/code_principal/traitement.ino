@@ -50,12 +50,20 @@
     date /= 60;
     int heure = date % 24;
     int jour = date / 24;
-    if (jour <= 31) mois = "08";  
-    else if (jour <= 61) {                                        //à compléter pour les autres mois
+    if      (jour <= 31) mois = "08";  
+    else if (jour <= 61) {                                   
       mois = "09";
       jour -= 31;  }
-    String chaine = "2019-" + mois + "-" + (String)jour + "T" + (String)heure + ":" + (String)minute + ":" + (String)seconde + "." + (String)milli + "Z";
-    return "2019-" + mois + "-" + (String)jour + "T" + (String)heure + ":" + (String)minute + ":" + (String)seconde + "." + (String)milli + "00Z";
+    else if (jour <= 92) {                        
+      mois = "10";
+      jour -= 61;  }
+    else if (jour <= 122) {    
+      mois = "11";
+      jour -= 92;  }
+    else  {                                        //à compléter pour 2020
+      mois = "12";
+      jour -= 122;  }
+    return "2019-" + mois + "-" + (String)jour + "T" + (String)heure + ":" + (String)minute + ":" + (String)seconde + "." + (String)milli + "00+02:00";
   }
 //-----------------------------------------------------------------------------------------------------------------------------
   unsigned long StringToDate(String chaine){                        // millisecondes à partir du 1/8/2019 à 0h
@@ -71,9 +79,10 @@
       if ((annee < 2019) || (annee > 2020) || (mois > 12) || (jour > 31) || (heure > 23) || (minute > 59) || (seconde > 59) || (milli > 9)) {
         Log(2, "date serveur non correcte ", "");  }
       else {
-        if (mois == 9)  { date += 31*24*60*60*10;}
-        if (mois == 10) { date += 61*24*60*60*10;}
-        if (mois == 11) { date += 92*24*60*60*10;}                      //à compléter pour les autres mois
+        if (mois == 9)  date += 31*24*60*60*10;   
+        if (mois == 10) date += 61*24*60*60*10;
+        if (mois == 11) date += 92*24*60*60*10;                      
+        if (mois == 12) date += 122*24*60*60*10;                      //à compléter pour 2020
         date += jour*24*60*60*10;
         date += heure*60*60*10;
         date += minute*60*10;

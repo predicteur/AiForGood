@@ -7,6 +7,8 @@
     wifiManager->setDebugOutput(debugWiFi);                        // à revoir, marche pas
     Log(3, "Connected to : " + WiFi.SSID(), WiFi.psk());
     Log(0, "IP address : ", WiFi.localIP().toString());
+    MajToken();                                                   // initialisation token et date
+    RepriseEnvoiWifiData();                                        // renvoi des mesures stockées dans SPIFFS
   }
 //-----------------------------------------------------------------------------------------------------------------------------
   String GenereJSONparam() { 
@@ -135,13 +137,13 @@
     String JSONdata = GenereJSONdata();
     if (autonom) AjouteMesure(JSONdata);
     else if (JSONdata == "") {
-      Log(2, "taille JSON superieure a la taille maxi", "");
+      Log(1, "taille JSON superieure a la taille maxi", "");
       StripAffiche("mesure non envoyee");   }
     else {
       retourData = EnvoiJSON(url, JSONdata);
       if (retourData == "") { 
         StripAffiche("mesure non envoyee");
-        Log(2, "retour serveur data vide ", "");
+        Log(1, "retour serveur data vide ", "");
         AjouteMesure(JSONdata);   }   }
   }
 //-----------------------------------------------------------------------------------------------------------------------------  

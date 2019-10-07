@@ -114,11 +114,10 @@
     theme = "setup   ";
     Serial.begin(115200);                                       
     delay(10); Serial.println('\n');
-                                                                // initialisation données et affichage
-    CreerMesure();                                              // Création pm10 et pm2_5
     strip.begin();                                              // INITIALIZE NeoPixel strip object (REQUIRED)
     strip.show();                                               // Turn OFF all pixels
     StripAffiche("demarrage");
+    CreerMesure();                                              // Création pm10 et pm2_5
 //--------------------------------------------- initialisation capteurs et équipements --------------------------------------------------------------------------------                                                                                 
     theme = "capteur ";
 #if SDS                                                         // initialisation capteur PM
@@ -167,8 +166,6 @@
     theme = "wifi    ";
     WiFi.mode(WIFI_AP_STA);                                       // mode mixte server et client
     DemarreWiFi(memIdentifiant, &wifiManager);
-                                                                  // initialisation token et date
-    MajToken();
                                                                   // initialisation serveur web
     server.on("/mesures.json", HTTP_GET, SendMesureWeb);
     server.serveStatic("/", SPIFFS, "/index.html");
@@ -179,9 +176,7 @@
 //--------------------------------------------- initialisation démarrage --------------------------------------------------------------------------------                                                                                 
     StripAffiche("controleur demarre");
     Log(0, "controleur demarre en mode : ", modeLog);
-#ifdef RESEAUWIFI
-    RepriseEnvoiWifiData();                                        // renvoi des mesures stockées dans SPIFFS
-#endif
+    modeFonc = MODE_NORMAL;
   }
 /*
  ****************************************************************************************************************
@@ -203,9 +198,9 @@
       StripAffiche("demarrage");
       DemarreWiFi(identifiant, &wifiManager);
       resetWiFi = RESET_AUCUN;  
+      modeFonc = MODE_NORMAL;
       StripAffiche("controleur demarre");
       Log(0, "controleur redemarre en mode : ", modeLog);  
-      RepriseEnvoiWifiData(); }                                       // renvoi des mesures stockées dans SPIFFS
 #endif    
 //--------------------------------------------- gestion des modes de fonctionnement --------------------------------------------------------------------------------                                                                               
     theme = "global  ";
