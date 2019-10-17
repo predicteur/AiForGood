@@ -184,6 +184,7 @@
  ****************************************************************************************************************
 */
   void loop() {    
+
 //--------------------------------------------- mise à jour des variables serveur et paramètres page web ----------------------------------------------------------                                                                               
 #ifdef RESEAUWIFI
     theme = "wifi    ";
@@ -200,7 +201,7 @@
       resetWiFi = RESET_AUCUN;  
       modeFonc = MODE_NORMAL;
       StripAffiche("controleur demarre");
-      Log(0, "controleur redemarre en mode : ", modeLog);  
+      Log(0, "controleur redemarre en mode : ", modeLog);  }
 #endif    
 //--------------------------------------------- gestion des modes de fonctionnement --------------------------------------------------------------------------------                                                                               
     theme = "global  ";
@@ -210,17 +211,17 @@
       StripAffiche("mesures saturees"); 
       if (!autonom) RepriseEnvoiWifiData();  }                                      // renvoi des mesures stockées dans SPIFFS
 #if SDS
-      /*WorkingStateResult etatSDS = sds.sleep();
-      if (etatSDS.isWorking()) {
-        Log(1, "Probleme de mise en sommeil SDS", "");
-      }*/
+      //WorkingStateResult etatSDS = sds.sleep();
+      //if (etatSDS.isWorking()) {
+      //  Log(1, "Probleme de mise en sommeil SDS", "");
+      //}
 #endif
     else {
 #if SDS
-      /*WorkingStateResult etatSDS = sds.wakeup();
-      if (!etatSDS.isWorking()) {
-        Log(1, "Probleme de reveil SDS", "");
-      }*/
+      //WorkingStateResult etatSDS = sds.wakeup();
+      //if (!etatSDS.isWorking()) {
+      //  Log(1, "Probleme de reveil SDS", "");
+      //}
 #endif
       if      (modeLuminosite == LUM_ECO)   niveauAffichage = NIVEAU_FAIBLE;
       else if (modeLuminosite == LUM_FORT)  niveauAffichage = NIVEAU_FORT;        
