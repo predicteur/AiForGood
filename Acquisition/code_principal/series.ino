@@ -44,7 +44,7 @@
     return moyenne;
   }
 //-----------------------------------------------------------------------------------------------------------------------------
-  float ecretage(float serie[], float mini, float maxi, float sserie[], int len){
+  void ecretage(float serie[], float mini, float maxi, float sserie[], int len){
     for (int i=0; i<len; i++) sserie[i] = min(maxi, max(mini, serie[i]));
   }
 //-----------------------------------------------------------------------------------------------------------------------------

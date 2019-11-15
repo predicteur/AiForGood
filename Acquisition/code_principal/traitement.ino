@@ -63,7 +63,8 @@
     else  {                                        //à compléter pour 2020
       mois = "12";
       jour -= 122;  }
-    return "2019-" + mois + "-" + (String)jour + "T" + (String)heure + ":" + (String)minute + ":" + (String)seconde + "." + (String)milli + "00+02:00";
+    //return "2019-" + mois + "-" + (String)jour + "T" + (String)heure + ":" + (String)minute + ":" + (String)seconde + "." + (String)milli + "00+02:00";   // avec les millisecondes
+    return "2019-" + mois + "-" + (String)jour + "T" + (String)heure + ":" + (String)minute + ":" + (String)seconde + "+01:00";                           // sans les millisecondes
   }
 //-----------------------------------------------------------------------------------------------------------------------------
   unsigned long StringToDate(String chaine){                        // millisecondes à partir du 1/8/2019 à 0h

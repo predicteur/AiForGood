@@ -140,7 +140,7 @@
       decodage();        
       optimisation();
       // calcul de l'écart-type final
-      codage; 
+      codage(); 
       decodage();
       decompression();
       PrSerie(4, y0fon, TAILLE_ECH, "y0fon apres compression");
