@@ -18,10 +18,12 @@
     mes[M_PM25].nom = "PM25";
     mes[M_PM25].valeurMin = VALEUR_MIN_PM;
     mes[M_PM25].valeurMax = VALEUR_MAX_PM;
+    mes[M_PM25].valeurFiltree = -1;
   
     mes[M_PM10].nom = "PM10";
     mes[M_PM10].valeurMin = VALEUR_MIN_PM;
     mes[M_PM10].valeurMax = VALEUR_MAX_PM;
+    mes[M_PM10].valeurFiltree = -1;
   }
 //-----------------------------------------------------------------------------------------------------------------------------
   void CalculMesure(){
@@ -40,7 +42,8 @@
       mes[nMes].date = mes[nMes].date / mes[nMes].nombre;
       if (mes[nMes].nombreOk > 0) {
           mes[nMes].valeur /= float(mes[nMes].nombreOk);
-          mes[nMes].valeurFiltree = COEF_FILTRAGE * mes[nMes].valeurFiltree + (1-COEF_FILTRAGE) * mes[nMes].valeur;
+          if (mes[nMes].valeurFiltree < 0) mes[nMes].valeurFiltree = mes[nMes].valeur;
+          else mes[nMes].valeurFiltree = COEF_FILTRAGE * mes[nMes].valeurFiltree + (1-COEF_FILTRAGE) * mes[nMes].valeur;
           variance = (mes[nMes].ecartType / float(mes[nMes].nombreOk) - pow(mes[nMes].valeur, 2.0));
           if (variance < 0.000001) mes[nMes].ecartType =  0.0;
           else mes[nMes].ecartType = sqrt(variance);

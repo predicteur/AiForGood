@@ -17,7 +17,7 @@ void GroupeMesure() {
   }
 //-----------------------------------------------------------------------------------------------------------------------------
   void GenereGroupe() {
-    for (int i = 0; i < TAILLE_ECH; ++i) y0init[i] = mesEnvoi[mesureLED][i].valeur;
+    for (int i = 0; i < TAILLE_ECH; ++i) y0i[i] = mesEnvoi[mesureLED][i].valeur;
     for (int i = 0; i < NB_MES; ++i) {
       for (int j = 0; j < TAILLE_ECH; ++j) {
         mesEnvoi[i][j].nombre       = 0;

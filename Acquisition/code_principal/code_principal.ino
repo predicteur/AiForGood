@@ -48,6 +48,7 @@
   int     nbMesureGroupe    = 0;                                  // compteur de mesures pour envoi groupé Sigfox de 0 à TAILLE_ECH
   int     nbMesureElem      = 0;                                  // compteur de mesures élémentaires dans le temps de cycle pour calcul du niveau de qualité
   DateRef dateRef           = {0, 0, 0};
+  
   // variables mesures et capteurs
   //struct WorkingStateResult etatSDS;                                     // état de fonctionnement du capteur SDS
   Mesure  mes[NB_MES];                                            // tableau des informations liées à une mesure
@@ -63,13 +64,11 @@
   boolean       tokenPresence = false;
   unsigned long tokenExpire = 0;
 #endif
-#ifdef COMPRESSION                                                // variables series de mesures
+#ifdef COMPRESSION                                               
   Mesure   mesEnvoi[NB_MES][TAILLE_ECH];                          // tableau des mesures à envoyer
-  CoefReg  coef     = {0.0, 0.0, 0.0};                            // paramètre de chaque régression unitaire
-  CoefComp coefc    = {0.0, 0.0, 0.0, {}, {}, 0.0};               // coefc : paramètres issue de la compression ou de l'optimisation
-  CoefComp coefp    = {0.0, 0.0, 0.0, {}, {}, 0.0};               // coefp : paramètres issus du decodage
-  CoefCode coefi    = {0, 0, 0.0, {}, {}, 0.0};                   // paramètre après codage
-  float y0init[TAILLE_ECH], y0n[TAILLE_ECH], y0fon[TAILLE_ECH];   // y0init : mesures à compresser, Y0n : mesures normalisées (entre 0 et 1), Y0fon : mesures issues de la compressipon
+  float* y0i = new float[TAILLE_ECH];                             // mesures à compresser
+  float* y0r = new float[TAILLE_ECH];                             // mesures reconstituées après compression/decompression
+
 #endif
 #ifdef BOARDSIGFOX
   SigfoxMessage payload;                                          // message envoyé par sigfox (12 octets découpés en trois variables de 4 octets)
@@ -81,6 +80,9 @@
 #endif
 //--------------------------------------------- initialisation des objets --------------------------------------------------------------------------------
   Adafruit_NeoPixel strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);      // afficheur LED associé au capteur
+#ifdef COMPRESSION
+    Compressor comp(NBREG, NBREG0, NBREG1, MINI, MAXI, BIT_0, BIT_1, BITECT, TAILLE_ECH);
+#endif
 #ifdef RESEAUWIFI
   ADC_MODE(ADC_VCC);                                                      // autorise la lecture de tension (non compatible avec l'utilisation de A0 qui doit rester en l'air) 
   ESP8266WebServer server(80);                                            // ecoute sur le port 80
@@ -145,7 +147,7 @@
     Serial1.begin(9600);                                        // UART hardware
 #endif
 //--------------------------------------------- initialisation communication --------------------------------------------------------------------------------                                                                                 
-#ifdef BOARDSIGFOX                                              // initialisation Sigfox
+#ifdef BOARDSIGFOX                                              // initialisation Sigfox et compression
     theme = "SIGFOX  ";
     if (!SigFox.begin()) reboot();
     SigFox.end();
@@ -206,9 +208,11 @@
     theme = "global  ";
     autonom = (modeFonc == MODE_AUTONOME);
     if (modeFonc == MODE_VEILLE) StripAffiche("mode veille");
+#ifdef RESEAUWIFI
     else if (etatMesureSature) {
       StripAffiche("mesures saturees"); 
       if (!autonom) RepriseEnvoiWifiData();  }                                      // renvoi des mesures stockées dans SPIFFS
+#endif
 #if SDS
       //WorkingStateResult etatSDS = sds.sleep();
       //if (etatSDS.isWorking()) {
@@ -272,9 +276,9 @@
       if ( nbMesureGroupe >= TAILLE_ECH ){
           nbMesureGroupe = 0;      
           GenereGroupe();                                      // préparation des données à compresser avant envoi
-          PrSerie(y0init, TAILLE_ECH, "y0init");
-          compress();                                          // compression des données
-          PrSerie(y0fon, TAILLE_ECH, "y0fon apres compress");
+          PrSerie(3, y0i, TAILLE_ECH, "y0init");
+          String res = comp.calcul(y0i, true);
+          PrSerie(3, comp.simul(), TAILLE_ECH, "y0res");
           EnvoiSigfox(); }                                  // envoi sigfox des données compressées
 #endif
     }

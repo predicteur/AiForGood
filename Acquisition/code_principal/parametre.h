@@ -36,6 +36,7 @@
   #ifdef BOARDSIGFOX
     #include <SigFox.h>
     #include <ArduinoLowPower.h>
+    #include "compressor.h"
   #else
     #include <ESP8266WiFi.h>
     #include <WiFiClientSecure.h>
@@ -118,7 +119,7 @@
 //--------------------------------------------- configuration logicielle -----------------------------
     int         MAX_STOCKAGE    = 300;         // nombre mxi de mesures stockées dans l'ESP
     boolean     MEM_IDENTIFIANT = true;       // false : pas de mémorisation des accès WiFi, true : mémorisation  
-    String      LOG_DEFAUT      = LOG_DEBUG;  // "normal" : infos(0), warning(1), erreur(2), "verbose" : detail(3), "debug" : debug(4)
+    String      LOG_DEFAUT      = LOG_VERBOSE;  // "normal" : infos(0), warning(1), erreur(2), "verbose" : detail(3), "debug" : debug(4)
     const char *DEVICE_NAME     = "sensor9";  // nom du device a documenter
 
 //--------------------------------------------- configuration mesures
@@ -143,26 +144,21 @@
     #define AI4GOOD_PASSWORD        "eGXyyne2RTp4JxGJ6cX8Ggn3"
     const char *AUTO_CONNECT      = "AI for GOOD";
   #endif
-
-//--------------------------------------------- parametres compression
   #ifdef COMPRESSION
-    const float SEUIL_ECT = 0.001; // seuil minimum de l'écart-type (évite division par 0)
-    const int   ECRET   = 2;       // coef d'écrétage des écarts pour la régression initiale ex. 2 (coef multiplié à l'écart-type)
-    const int   NBREG   = 8;       // nombre de régression de niveau 1 ex. 8
-    const float RACINE  = 0.5;     // fonction de normalisation des données (données ** racine) racine <= 1.0 ex. racine = 0.5
+//--------------------------------------------- parametres compression
+    const int   NBREG   = 2;       // nombre de régression de niveau 1 ex. 8
+    const int   NBREG0  = 2;       // nombre de points pour la régression initiale ex. 2
+    const int   NBREG1  = 2;       // nombre de points pour la régression secondaire ex. 2
     const float MINI    = 0.0;     // plage mini et maxi des mesures prise en compte (écrétage sinon)
     const float MAXI    = 500.0;   // plage mini et maxi des mesures prise en compte (écrétage sinon)
   
 //--------------------------------------------- parametres codage
-    const float PLA     = 10.0;     // plage pour les coefficients a de niveau 1 : abs(a) < pla * ecart-type ex. 10.0
-    const float PLB     = 3.0;      // plage pour les coefficients b de niveau 1 : abs(b) < plb * ecart-type ex. 3.0
-    const int   BITS    = 8;        // nb de bits pour les coeff de niveau 0 ex. 8
-    const int   BITC    = 4;        // nb de bits pour les coeff de niveau 1 ex. 4
-    const int   TOTAL_BIT   = (4 * BITS + NBREG * 2 * BITC);  // nombre de bit à envoyer
+    const int   BIT_0   = 8;        // nb de bits pour les points de niveau 0 ex. 8
+    const int   BIT_1   = 4;        // nb de bits pour les points de niveau 1 ex. 8
+    const int   BITECT  = 4;        // nb de bits pour les ecart-type ex. 4
   
 //--------------------------------------------- paramètres de l'échantillon
-    const int   TAILLE_ECH  = 32;                             // nombre de mesures d'un échantillon de la régression principale ex.32
-    const int   TAILLE_ECH2 = TAILLE_ECH / NBREG;             // nombre de mesures des échantillons de la régression complémentaire
+    const int   TAILLE_ECH  = 8;                             // nombre de mesures d'un échantillon de la régression principale ex.32
   #endif
 /*
  ****************************************************************************************************************
@@ -186,29 +182,6 @@
     float   valeurMax;              // valeur max autorisée pour la mesure
     float   tauxErreur;             // ratio nombre de mesures correctes / nombre de mesures effectuées
   };
-  #ifdef COMPRESSION
-    struct CoefReg {
-      float   a;                    // coef a régression linéaire y = a * x + b
-      float   b;                    // coef b régression linéaire y = a * x + b
-      float   ect;                  // écart-type entre la valeut y et l'estimation y = a x + b
-    };    
-    struct CoefComp {
-      float   a0;                   // coef a régression linéaire principale
-      float   b0;                   // coef b régression linéaire principale
-      float   et0;                  // écart-type entre la valeut y et l'estimation principale
-      float   a1[NBREG];            // coef a régression linéaire secondaire
-      float   b1[NBREG];            // coef b régression linéaire secondaire
-      float   ect;                  // écart-type global entre la valeut y et l'estimation complète
-    };
-    struct CoefCode {
-      int   a0;                     // coef a régression linéaire principale
-      int   b0;                     // coef b régression linéaire principale
-      int   et0;                    // écart-type entre la valeut y et l'estimation principale
-      int   a1[NBREG];              // coef a régression linéaire secondaire
-      int   b1[NBREG];              // coef b régression linéaire secondaire
-      int   ect;                    // écart-type global entre la valeut y et l'estimation complète
-    };
-  #endif
   #ifdef BOARDSIGFOX
     typedef struct __attribute__ ((packed)) sigfox_message {
       uint32_t msg1;

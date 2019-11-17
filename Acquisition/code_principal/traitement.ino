@@ -1,6 +1,5 @@
 //-----------------------------------------------------------------------------------------------------------------------------
   void Log(int type, String objet, String parametre) {
-    String url = SERVEUR_AI4GOOD_LOG;
     String typeS = "infos---";
     String JSONlog = "";
     String JSONretour = "";
@@ -12,6 +11,7 @@
       Serial.println(theme + " : " + typeS + " " + objet + " -- " + parametre);  }
 #ifdef RESEAUWIFI
     if ((type < 3) & (tokenExpire > 0) & !autonom) {                                  // envoi des logs
+      String url = SERVEUR_AI4GOOD_LOG;
       const size_t capacity = JSON_OBJECT_SIZE(12);
       DynamicJsonDocument rootLog(capacity);
       rootLog["equipement"]        = DEVICE_NAME;
@@ -76,7 +76,8 @@
       int           heure     = chaine.substring(11,13).toInt();
       int           minute    = chaine.substring(14,16).toInt();
       int           seconde   = chaine.substring(17,19).toInt();
-      int           milli     = chaine.substring(20,21).toInt();
+//      int           milli     = chaine.substring(20,21).toInt();
+      int           milli     = 0;
       if ((annee < 2019) || (annee > 2020) || (mois > 12) || (jour > 31) || (heure > 23) || (minute > 59) || (seconde > 59) || (milli > 9)) {
         Log(2, "date serveur non correcte ", "");  }
       else {
@@ -172,3 +173,13 @@
 #endif
     Log(3, "mesure capteur : " + String(pm[mesureLED]), "");
   }
+  //-----------------------------------------------------------------------------------------------------------------------------
+#ifdef COMPRESSION
+  void PrSerie(int level, float* serie, int len, String nom) {
+    theme = "compres ";
+    String valeur =  nom + " :[ ";
+    for (int i=0; i<len; i++) valeur += String(serie[i]) + ", ";
+    valeur += "] ";
+    Log(level, valeur, "");
+  }
+#endif
