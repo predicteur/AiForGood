@@ -3,6 +3,9 @@
       ESP     -> Type de carte : Node MCU 1.0(ESP-12E Module) / Options : 80 MHz, Flash, 4M (3M SPIFFS), v2 Lower Memory, Disabled, None, Only Sketch / programmateur : Arduino as ISP / Outils : ESP8266 Sketch Data Upload (envoi des fichiers Data)
       MKR1200 -> Type de carte : ARDUINO MKR FOX 1200 / programmateur : ATMEL-ICE
 
+  Librairies à ajouter avant compilation :
+    Compressor : disponible sur Github (prédicteur)
+    
   Paramètres à vérifier avant compilation :
   
     const char *DEVICE_NAME = "sensorxxx";  
@@ -165,6 +168,7 @@
     */
                                                                   // initialisation Serveur WiFi
     theme = "wifi    ";
+    wifiManager.setAPCallback(CallbackNouveauReseau);             // fonction appelee si necessite de redemarrer la connexion wifi
     WiFi.mode(WIFI_AP_STA);                                       // mode mixte server et client
     DemarreWiFi(memIdentifiant, &wifiManager);
                                                                   // initialisation serveur web

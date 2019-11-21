@@ -1,13 +1,22 @@
 #ifdef RESEAUWIFI
 //-----------------------------------------------------------------------------------------------------------------------------
+  void CallbackNouveauReseau(WiFiManager *wifiManager) {
+    StripAffiche("nouveau reseau");
+  }
+//-----------------------------------------------------------------------------------------------------------------------------
   void DemarreWiFi(boolean memIdentifiant, WiFiManager *wifiManager) {
+    byte mac[6];
     if (!memIdentifiant) wifiManager->resetSettings();             // garder en mémoire ou non les anciens identifiants
-    wifiManager->autoConnect(AUTO_CONNECT);                        // connexion automatique au réseau précédent si MEMIDENTIFIANT = 1
     boolean debugWiFi = (modeLog == String(LOG_DEBUG));
-    wifiManager->setDebugOutput(debugWiFi);                        // à revoir, marche pas
+    wifiManager->setDebugOutput(debugWiFi);                        
+    wifiManager->autoConnect(AUTO_CONNECT);                        // connexion automatique au réseau précédent si MEMIDENTIFIANT = 1
+    StripAffiche("demarrage");
+    WiFi.macAddress(mac);
     Log(3, "Connected to : " + WiFi.SSID(), WiFi.psk());
-    Log(0, "IP address : ", WiFi.localIP().toString());
-    MajToken();                                                   // initialisation token et date
+    Log(0, "IP   address : ", WiFi.localIP().toString());
+    Log(0, "MAC  address : ", (String)mac[5] + " " + (String)mac[4] + " " + (String)mac[3] + " " + (String)mac[2] + " " + (String)mac[1] + " " + (String)mac[0] );
+    //Log(3, "MAC  address : ", String((char *)mac));
+    MajToken();                                                    // initialisation token et date
     RepriseEnvoiWifiData();                                        // renvoi des mesures stockées dans SPIFFS
   }
 //-----------------------------------------------------------------------------------------------------------------------------
@@ -189,7 +198,7 @@
       Log(4, "ajustement des variables  : " + parametres, "");
       if ((parametres == "")|((httpCode != 200)&(httpCode != 201))) Log(2, "lecture des variables indisponible", ""); 
       else boolean erreur = ActualisationVariables(parametres);   }
-    else Log(4, "pas de recuperation wifi de varibles", "");
+    else Log(4, "pas de recuperation wifi de variables", "");
   }
 //-----------------------------------------------------------------------------------------------------------------------------  
   boolean ActualisationVariables(String parametres){      

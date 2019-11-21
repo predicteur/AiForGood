@@ -36,7 +36,7 @@
   #ifdef BOARDSIGFOX
     #include <SigFox.h>
     #include <ArduinoLowPower.h>
-    #include "compressor.h"
+    #include "Compressor.h"
   #else
     #include <ESP8266WiFi.h>
     #include <WiFiClientSecure.h>

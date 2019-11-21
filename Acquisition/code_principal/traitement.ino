@@ -111,7 +111,10 @@
     if      (modeStrip == "demarrage") {     
         strip.setBrightness(LUMINOSITE_FAIBLE * niveau / 100);
         strip.setPixelColor(0, BLEU[0], BLEU[1], BLEU[2]); }
-    else if (modeStrip == "controleur démarre") {       
+    else if (modeStrip == "nouveau reseau") {     
+        strip.setBrightness(LUMINOSITE_FAIBLE * niveau / 100);
+        strip.setPixelColor(0, VIOLET[0], VIOLET[1], VIOLET[2]); }
+    else if (modeStrip == "controleur demarre") {       
         strip.setPixelColor(0, VERT[0], VERT[1], VERT[2]);
         Log(0, modeStrip, ""); }
     else if (modeStrip == "mesures saturees") {       
