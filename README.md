@@ -25,6 +25,8 @@ Des fonctions complémentaires sont également intégrées suivant les configura
 - gestion de modes de fonctionnement : autonome, veille, connecté (WiFi) 
 
 ## Mode de fonctionnement WiFi
+Les modes de fonctionnement sont les suivants :
+![image](https://github.com/predicteur/AiForGood/blob/arduino_sketch/%C3%A9tats.png)
 
 
 ## Plateforme matérielle
