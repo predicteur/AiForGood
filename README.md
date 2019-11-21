@@ -2,7 +2,7 @@
 
 ## Objectif
 - Gestion et restitution locale de mesures issues de capteurs
-- Mise à disposition d'une application sur serveur des données
+- Mise à disposition des données sur serveur des données
 - Utilisation fixe ou mobile
 
 ## Fonctions
@@ -17,12 +17,15 @@ Les principales fonctions intégrées sont les suivantes :
 - avertissement LED du niveau d'alimentation trop faible
 - avertissement LED de l'absence de connexion (Wifi)
 - remontée de logs sur le serveur
+- géolocalisation des données (GPS)
 
 Des fonctions complémentaires sont également intégrées suivant les configurations mises en place :
 - compressions des données pour les réseaux bas-débit (LoRa, Sigfox)
 - restitution sur navigateur web (WiFi)
+- gestion de modes de fonctionnement : autonome, veille, connecté (WiFi) 
 
-La fonction de géolocalisation est pour l'instant externe à l'application (à venir)
+## Mode de fonctionnement WiFi
+
 
 ## Plateforme matérielle
 - utilisation mobile : ESP8266
