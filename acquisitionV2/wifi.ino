@@ -13,8 +13,10 @@
     StripAffiche("demarrage");
     WiFi.macAddress(mac);
     Log(3, "Connected to : " + WiFi.SSID(), WiFi.psk());
-    Log(0, "IP   address : ", WiFi.localIP().toString());
-    Log(0, "MAC  address : ", (String)mac[5] + " " + (String)mac[4] + " " + (String)mac[3] + " " + (String)mac[2] + " " + (String)mac[1] + " " + (String)mac[0] );
+    devType.adresseIP = WiFi.localIP().toString();
+    Log(0, "IP   address : ", devType.adresseIP );
+    devType.deviceId = (String)mac[5] + " " + (String)mac[4] + " " + (String)mac[3] + " " + (String)mac[2] + " " + (String)mac[1] + " " + (String)mac[0];
+    Log(0, "MAC  address : ", devType.deviceId );
     //Log(3, "MAC  address : ", String((char *)mac));
     MajToken();                                                    // initialisation token et date
     RepriseEnvoiWifiData();                                        // renvoi des mesures stockées dans SPIFFS
@@ -25,44 +27,24 @@
     DynamicJsonDocument param(capacity);
     String JSONmessage = "";
     param["device"]               = DEVICE_NAME;
-    param["feeling"]              = ressenti;
+    param["feeling"]              = device.ressenti;
     param["mode_fonctionnement"]  = modeFonc;
     param["mode_log"]             = modeLog;
     //param["mode_lum"]             = modeLuminosite;
-    param["niv_batt"]             = String(niveauBatterie);
+    param["niv_batt"]             = String(device.niveauBatterie);
     serializeJson(param, JSONmessage);
-    return JSONmessage;
-  }
-//-----------------------------------------------------------------------------------------------------------------------------
-  String GenereJSONdata() { 
-    const size_t capacity = JSON_OBJECT_SIZE(13);
-    DynamicJsonDocument data(capacity);
-    String JSONmessage = "";
-    data["device"]            = DEVICE_NAME;
-    data["pm25"]              = String(mes[M_PM25].valeur, 2);
-    data["pm10"]              = String(mes[M_PM10].valeur, 2);
-    data["pm25_filtree"]      = String(mes[M_PM25].valeurFiltree, 2);
-    data["pm10_filtree"]      = String(mes[M_PM10].valeurFiltree, 2);
-    data["date_mesure"]       = CalculDate(mes[M_PM25].date);
-    data["ecart_type_pm25"]   = String(mes[M_PM25].ecartType, 2);
-    data["ecart_type_pm10"]   = String(mes[M_PM10].ecartType, 2);
-    data["taux_erreur_pm25"]  = String(mes[M_PM25].tauxErreur, 2);
-    data["taux_erreur_pm10"]  = String(mes[M_PM10].tauxErreur, 2);
-    data["feeling"]           = ressenti;
-#if GPS
-    data["latitude"]          = latitude;
-    data["longitude"]         = longitude;
-#else
-    data["latitude"]          = "";
-    data["longitude"]         = "";
-#endif
-    serializeJson(data, JSONmessage);
     return JSONmessage;
   }
 //-----------------------------------------------------------------------------------------------------------------------------
   void MajToken() { 
     if (!autonom) {
       int httpCode = 0;
+
+      /*std::unique_ptr<BearSSL::WiFiClientSecure>client(new BearSSL::WiFiClientSecure);
+      client->setFingerprint(SERVEUR_AI4GOOD_FINGER);
+      HTTPClient http;
+      http.begin(*client, SERVEUR_AI4GOOD_LOGIN);*/
+
       HTTPClient http;
       http.begin(SERVEUR_AI4GOOD_LOGIN, SERVEUR_AI4GOOD_FINGER);
       http.addHeader("Content-Type", "application/x-www-form-urlencoded");
@@ -79,24 +61,34 @@
         String sensor = login["token"]; 
         tokenValeur   = String("Bearer " + sensor);
         String expDate = login["exp_date"];
-        tokenExpire   = StringToDate(expDate);
-        Log(4, "token (en sec) : " + String(tokenExpire/10) + tokenValeur, "");    
                     // calcul de date
-        unsigned long dateLogin = millis()/100;
-        const char* dateServeur = login["date"];
-        if (StringToDate(dateServeur) > 0) {
-          dateRef.dateExt = StringToDate(dateServeur);
-          dateRef.dateInt = dateLogin;
-          dateRef.decalage = dateRef.dateExt - dateRef.dateInt;  }  }
-      delay(10000); }
+
+        String dateServeur = login["date"];
+        dateRef = stringToDate(dateServeur);
+        milliRef = millis();
+        //unsigned long dateLogin = millis()/100;
+        //const char* dateServeur = login["date"];
+        //InitDateRef(dateLogin, dateServeur);
+        tokenExpire = stringToDate(expDate);
+        Serial.println(dateRef.timestamp);
+        Serial.println(tokenExpire.timestamp);
+        
+        Log(4, "token expire (en sec) : " + String(tokenExpire.timestamp - dateRef.timestamp) + " " + tokenValeur, "");    
+        
+        EnvoiWifiDevice();  }
+      delay(1000); }
   }
 //-----------------------------------------------------------------------------------------------------------------------------
   String EnvoiJSON(String url, String JSONmes) { 
     String retour = "";
     int httpCode = 0;
     if ((WiFi.status() == WL_CONNECTED) & !autonom) {                                     
-      Log(4, "délai token restant en sec : " + String((tokenExpire - millis()/100 - dateRef.decalage)/10), "");
-      if (tokenExpire - millis()/100 - dateRef.decalage < 10*60*10) MajToken();         // marge de 10 minutes avant expiration
+      Log(4, "délai token restant en sec : " + String(tokenExpire.timestamp - dateRef.timestamp - (millis() - milliRef)/1000), "");
+      if (tokenExpire.timestamp - dateRef.timestamp - (millis() - milliRef)/1000 < 10*60) MajToken();         // marge de 10 minutes avant expiration
+      /*std::unique_ptr<BearSSL::WiFiClientSecure>client(new BearSSL::WiFiClientSecure);
+      client->setFingerprint(SERVEUR_AI4GOOD_FINGER);    
+      HTTPClient http;
+      http.begin(*client, url);*/
       HTTPClient http;
       http.begin(url, SERVEUR_AI4GOOD_FINGER);
       http.addHeader("Authorization", tokenValeur);
@@ -106,7 +98,7 @@
       http.end(); 
       if (httpCode != 200 & httpCode != 201) {
         if (httpCode == 401 | httpCode == 403) {
-          tokenExpire = 0;
+          tokenExpire.setDate(1980, 1, 1);
           Log(1, "token absent, expire ou non valide ", String(httpCode));
           MajToken();  }
         retour ="";  }
@@ -117,7 +109,7 @@
     return retour;    
   }
 //-----------------------------------------------------------------------------------------------------------------------------
-  void AjouteMesure(String JSONmesure) {                                  // Stockage des donnnées non envoyées
+  void AjouteJSON(String JSONmesure) {                                  // Stockage des donnnées non envoyées
     String total = "";
     theme = "esp     ";
     if (!autonom) StripAffiche("mesure non envoyee");
@@ -139,12 +131,18 @@
         Log(3, "total stocke apres ajout : ", String(totalMesureNonReprise));  }  }
   }
 //-----------------------------------------------------------------------------------------------------------------------------
-  void EnvoiWifiData() { 
+  void EnvoiWifiDevice() { 
+    
+    // à compléter, envoi devicetype et mesuretype
+    
+  }
+//-----------------------------------------------------------------------------------------------------------------------------
+  void EnvoiWifiMesure() { 
     String url = SERVEUR_AI4GOOD_DATA;
     String retourData = "";
     theme = "wifi    ";
-    String JSONdata = GenereJSONdata();
-    if (autonom) AjouteMesure(JSONdata);
+    String JSONdata = MesureGenereJSON();
+    if (autonom) AjouteJSON(JSONdata);
     else if (JSONdata == "") {
       Log(1, "taille JSON superieure a la taille maxi", "");
       StripAffiche("mesure non envoyee");   }
@@ -153,7 +151,7 @@
       if (retourData == "") { 
         StripAffiche("mesure non envoyee");
         Log(1, "retour serveur data vide ", "");
-        AjouteMesure(JSONdata);   }   }
+        AjouteJSON(JSONdata);   }   }
   }
 //-----------------------------------------------------------------------------------------------------------------------------  
   void RepriseEnvoiWifiData() {
@@ -189,6 +187,9 @@
   void AjustementVariables(){
     theme = "variable";
     if ((WiFi.status() == WL_CONNECTED) & !autonom) {                                  
+      /*WiFiClient client;
+      HTTPClient http;
+      http.begin(client, SERVEUR_AI4GOOD_VAR);*/
       HTTPClient http;
       http.begin(SERVEUR_AI4GOOD_VAR);
       http.addHeader("Content-Type", "application/json");                 
@@ -242,16 +243,16 @@
       
       int pTempsCycle = param0["temps_cycle"];
       if ((pTempsCycle > 2000) & (pTempsCycle < 3600000)) {
-        if (pTempsCycle != TEMPS_CYCLE) {
+        if (pTempsCycle != device.tempsCycle) {
           Log(0,"nouveau temps de cycle en ms : ", String(pTempsCycle));
-          TEMPS_CYCLE = pTempsCycle;  }  }
+          device.tempsCycle = pTempsCycle;  }  }
       else Log(4,"temps de cycle incorrect : ", "");
     
       int pMesureLED = param0["mesure_led"];
       if ((pMesureLED > -1) & (pMesureLED < NB_MES)) {
-        if (pMesureLED != mesureLED) {
+        if (pMesureLED != device.mesureLED) {
           Log(0,"nouvelle mesure a afficher sur la LED : ", String(pMesureLED));
-          mesureLED = pMesureLED;  }  }
+          device.mesureLED = pMesureLED;  }  }
       else Log(4,"mesure a afficher sur la LED incorrecte : ", String(pMesureLED));  }
     return err;
   }  
@@ -287,7 +288,7 @@
       modeFonc = ValideListe(pmodeFonc, MODE_NORMAL, MODE_VEILLE, MODE_AUTONOME, modeFonc, "mode de fonctionnement");
 
       const char* pRessenti = param["ressenti"];
-      ressenti = ValideListe(pRessenti, RESSENTI_BIEN, RESSENTI_NORMAL, RESSENTI_PASBIEN, ressenti, "ressenti");  }
+      device.ressenti = ValideListe(pRessenti, RESSENTI_BIEN, RESSENTI_NORMAL, RESSENTI_PASBIEN, device.ressenti, "ressenti");  }
     return err;
   }  
 //-----------------------------------------------------------------------------------------------------------------------------  
@@ -314,5 +315,24 @@
       else {
         String retour = EnvoiJSON(url, JSONparam);
         if (retour == "") Log(2, "retour envoi JSON parametres vide", "");  }  }
+  }
+//-----------------------------------------------------------------------------------------------------------------------------
+  String dateToString(DTime date) { return (String)date.year + "-" + (String)date.month + "-" + (String)date.day + "T" + (String)date.hour + ":" + (String)date.minute + ":" + (String)date.second + "+01:00"; }// sans les millisecondes
+//-----------------------------------------------------------------------------------------------------------------------------
+  DTime calculDate(unsigned long dateI) { DTime date((dateI - milliRef) / 1000 + dateRef.timestamp); return date; }
+//-----------------------------------------------------------------------------------------------------------------------------
+  unsigned long calculDateInt(DTime date) { return (date.timestamp - dateRef.timestamp) * 1000; }
+  //-----------------------------------------------------------------------------------------------------------------------------
+DTime stringToDate(String chaine) {
+    DTime date;
+    if (chaine.length() > 15) {
+      date.setDate(chaine.substring(0, 4).toInt(), chaine.substring(5, 7).toInt(), chaine.substring(8, 10).toInt());
+      date.setTime(chaine.substring(11, 13).toInt(), chaine.substring(14, 16).toInt(), chaine.substring(17, 19).toInt());
+      Serial.println(chaine.substring(0, 4) + chaine.substring(5, 7) + chaine.substring(8, 10));
+      Serial.println(chaine.substring(0, 4).toInt()); 
+      Serial.println(date.year);
+    }
+    else Log(2, "date serveur non exploitable (taille < 15) : ", String(chaine.length()));
+    return date;
   }
 #endif

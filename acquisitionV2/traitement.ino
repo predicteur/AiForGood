@@ -10,12 +10,12 @@
     if ((modeLog == "normal" & type < 3) | (modeLog == "verbose" & type < 4) | (modeLog == "debug" & type <5)) {
       Serial.println(theme + " : " + typeS + " " + objet + " -- " + parametre);  }
 #ifdef RESEAUWIFI
-    if ((type < 3) & (tokenExpire > 0) & !autonom) {                                  // envoi des logs
+    if ((type < 3) & (tokenExpire.year > 2019) & !autonom) {                                  // envoi des logs
       String url = SERVEUR_AI4GOOD_LOG;
       const size_t capacity = JSON_OBJECT_SIZE(12);
       DynamicJsonDocument rootLog(capacity);
       rootLog["equipement"]        = DEVICE_NAME;
-      rootLog["date"]              = CalculDate(millis()/100);
+      rootLog["date"]              = dateToString(calculDate(millis()));
       rootLog["type"]              = typeS;
       rootLog["theme"]             = theme;
       rootLog["objet"]             = objet;
@@ -32,66 +32,6 @@
     if      (mesValeurLED < SEUIL_BON_PM)   StripAffiche("correct");
     else if (mesValeurLED < SEUIL_MOYEN_PM) StripAffiche("moyen");
     else                                    StripAffiche("mauvais");
-  }
-//-----------------------------------------------------------------------------------------------------------------------------
-  String  CalculDate(unsigned long dateInt) {
-    String chaine = DateToString(dateInt + dateRef.decalage);
-    if (dateRef.dateExt == 0) chaine = " - "; 
-    return chaine;
-  }
-//-----------------------------------------------------------------------------------------------------------------------------
-  String DateToString( unsigned long date){
-    String mois;
-    int milli = date % 10;
-    date /= 10;
-    int seconde = date % 60;
-    date /= 60;
-    int minute = date % 60;
-    date /= 60;
-    int heure = date % 24;
-    int jour = date / 24;
-    if      (jour <= 31) mois = "08";  
-    else if (jour <= 61) {                                   
-      mois = "09";
-      jour -= 31;  }
-    else if (jour <= 92) {                        
-      mois = "10";
-      jour -= 61;  }
-    else if (jour <= 122) {    
-      mois = "11";
-      jour -= 92;  }
-    else  {                                        //à compléter pour 2020
-      mois = "12";
-      jour -= 122;  }
-    //return "2019-" + mois + "-" + (String)jour + "T" + (String)heure + ":" + (String)minute + ":" + (String)seconde + "." + (String)milli + "00+02:00";   // avec les millisecondes
-    return "2019-" + mois + "-" + (String)jour + "T" + (String)heure + ":" + (String)minute + ":" + (String)seconde + "+01:00";                           // sans les millisecondes
-  }
-//-----------------------------------------------------------------------------------------------------------------------------
-  unsigned long StringToDate(String chaine){                        // millisecondes à partir du 1/8/2019 à 0h
-    unsigned long date      = 0;
-    if (chaine.length() > 15) {
-      int           annee     = chaine.substring(0,4).toInt();
-      int           mois      = chaine.substring(5,7).toInt();
-      int           jour      = chaine.substring(8,10).toInt();
-      int           heure     = chaine.substring(11,13).toInt();
-      int           minute    = chaine.substring(14,16).toInt();
-      int           seconde   = chaine.substring(17,19).toInt();
-//      int           milli     = chaine.substring(20,21).toInt();
-      int           milli     = 0;
-      if ((annee < 2019) || (annee > 2020) || (mois > 12) || (jour > 31) || (heure > 23) || (minute > 59) || (seconde > 59) || (milli > 9)) {
-        Log(2, "date serveur non correcte ", "");  }
-      else {
-        if (mois == 9)  date += 31*24*60*60*10;   
-        if (mois == 10) date += 61*24*60*60*10;
-        if (mois == 11) date += 92*24*60*60*10;                      
-        if (mois == 12) date += 122*24*60*60*10;                      //à compléter pour 2020
-        date += jour*24*60*60*10;
-        date += heure*60*60*10;
-        date += minute*60*10;
-        date += seconde*10;
-        date += milli;  }   } 
-    else Log(2, "date serveur non exploitable (taille < 15) : ", String(chaine.length()));
-    return date;
   }
 //-----------------------------------------------------------------------------------------------------------------------------
   int MesureBatterie(){
@@ -140,17 +80,6 @@
     strip.show();
   }
 //-----------------------------------------------------------------------------------------------------------------------------
-  boolean MesureOk() {
-    return (mes[M_PM25].nombreOk > 0) and (mes[M_PM10].nombreOk > 0);
-  }
-//-----------------------------------------------------------------------------------------------------------------------------
-  void PrMesure(int level){
-    theme = "capteur ";
-    Log(level, "   Nombre de mesures : " + String(mes[mesureLED].nombre) + " Taux d erreur : " + String(mes[mesureLED].tauxErreur), "");
-    Log(level, "   Valeur(inst+filt) : " + String(mes[mesureLED].valeur) + "  " + String(mes[mesureLED].valeurFiltree) + " Ecart-type : " + String(mes[mesureLED].ecartType),"");
-    Log(level, "   Ressenti          : " + ressenti + " Date : " + CalculDate(mes[mesureLED].date), "");
-  }
-//-----------------------------------------------------------------------------------------------------------------------------
   void LireCapteur(){
     theme = "capteur ";
 #if SDS
@@ -174,15 +103,5 @@
     delay(1000);
  #endif
 #endif
-    Log(3, "mesure capteur : " + String(pm[mesureLED]), "");
+    Log(3, "mesure capteur : " + String(pm[device.mesureLED]), "");
   }
-  //-----------------------------------------------------------------------------------------------------------------------------
-#ifdef COMPRESSION
-  void PrSerie(int level, float* serie, int len, String nom) {
-    theme = "compres ";
-    String valeur =  nom + " :[ ";
-    for (int i=0; i<len; i++) valeur += String(serie[i]) + ", ";
-    valeur += "] ";
-    Log(level, valeur, "");
-  }
-#endif
