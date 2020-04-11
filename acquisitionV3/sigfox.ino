@@ -12,7 +12,7 @@
       Log(4, "SigFox FW version " + SigFox.SigVersion(), "");
       Log(4, "ID  = " + SigFox.ID() + "  PAC = " + SigFox.PAC(), "");  }
     if (oneshot || test) {
-      Log(4, "mes[device.mesureLED].valeur : " + String(mes[device.mesureLED].valeur), "");
+      Log(4, "mes[device.mesureLED].valeur : " + String(mes[device.mesureLED]["valeur"][0]), "");
       Log(4, "payload: " + String(payload.msg1) + " " + String(payload.msg2) + " " + String(payload.msg3), "");  }
     if (!test) {
       SigFox.status(); delay(1);

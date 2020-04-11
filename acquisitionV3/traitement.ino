@@ -103,5 +103,5 @@
     delay(1000);
  #endif
 #endif
-    Log(3, "mesure capteur : " + String(pm[device.mesureLED]), "");
+    Log(3, "mesure capteur : " + String(pm[int(device.getValF("mesureLED"))]), "");
   }

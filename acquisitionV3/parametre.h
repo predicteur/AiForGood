@@ -1,4 +1,3 @@
-
 #ifndef PARAMETRE
   #define PARAMETRE
 /*
@@ -37,6 +36,7 @@
   #endif
 
 //--------------------------------------------- configuration des librairies -------------------------------- 
+    #include <Mesure.h>
   #ifdef BOARDSIGFOX
     #include <SigFox.h>
     #include <ArduinoLowPower.h>
@@ -94,6 +94,11 @@
     #define   M_PM10    1                     // indice de la mesure PM10 dans le tableau des mesures
     #define   T_PM10    "PM10"                // type de la mesure PM10 dans le tableau des mesures
     #define   FIC_BUF   "/buffer.txt"         // fichier de stockage des mesures non encore envoyées     
+    String listeDevice[12] = {  "date", "niveauBatterie", "tempsCycle", "mesureLED",
+                                "deviceId", "type", "logiciel", "materiel", "adresseIP", "ressenti", "longitude", "latitude" };
+    String listeMesure[11] = {  "valeurMin", "valeurMax",
+                                "capteur", "type",
+                                "nombre", "nombreOk", "valeur", "valeurFiltree", "ecartType", "date", "tauxErreur" };
     
 //--------------------------------------------- parametres Sigfox --------------------------------
   #ifdef BOARDSIGFOX
@@ -165,47 +170,15 @@
     const int   BIT_0   = 8;                  // nb de bits pour les points de niveau 0 ex. 8
     const int   BIT_1   = 4;                  // nb de bits pour les points de niveau 1 ex. 8
     const int   BITECT  = 4;                  // nb de bits pour les ecart-type ex. 4
-  
+  #endif  
 //--------------------------------------------- paramètres de l'échantillon
     const int   TAILLE_ECH  = 8;                             // nombre de mesures d'un échantillon de la régression principale ex.32
-  #endif
 /*
  ****************************************************************************************************************
              structures de données
  ****************************************************************************************************************
 */
-  struct DeviceType {
-    String      deviceId;                     // adresse MAC
-    String      type;                         // fixe ou mobile
-    String      logiciel;                     // n° de version
-    String      materiel;                     // config physique
-    String      adresseIP;
-  };
-  struct Device {
-    unsigned int  date;                       // date de la mesure
-    int         niveauBatterie;
-    String      ressenti;
-    String      longitude;
-    String      latitude;
-    int         tempsCycle;                   // durée (ms) entre deux mesures voir valeur initiale dans parametre.h
-    int         mesureLED;                    // numéro de mesure affichée sur la LED voir valeur initiale dans parametre.h
-  };
-  struct MesureType {
-    String      capteur;                      // type de capteur
-    float       valeurMin;                    // valeur min autorisée pour la mesure
-    float       valeurMax;                    // valeur max autorisée pour la mesure
-    String      type;                         // type de mesure réalisée
-  };
-  struct Mesure {
-    int         nombre;                       // nombre de mesures effectuées dans le temps de cycle
-    int         nombreOk;                     // nombre de mesures correctes dans le temps de cycle
-    double      valeur;                       // valeur de la mesure calculée dans le temps de cycle
-    double      valeurFiltree;                // valeur de la mesure filtrée
-    float       ecartType;                    // écart-type des valeurs bonnes
-    unsigned int  date;                       // date de la mesure
-    float       tauxErreur;                   // ratio nombre de mesures correctes / nombre de mesures effectuées
-  };
-  #ifdef BOARDSIGFOX
+#ifdef BOARDSIGFOX
     typedef struct __attribute__ ((packed)) sigfox_message {
       uint32_t  msg1;
       uint32_t  msg2;

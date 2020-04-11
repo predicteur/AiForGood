@@ -49,10 +49,6 @@
   
   // variables mesures et capteurs
   //struct WorkingStateResult etatSDS;                          // état de fonctionnement du capteur SDS
-  DeviceType    devType;                                        // informations fixes du device
-  Device        device;                                         // informations variables du device
-  MesureType    mesType[NB_MES];                                // informations fixes des mesures       
-  Mesure        mes[NB_MES];                                    // tableau des informations liées à une mesure
   double        pm [NB_MES];                                    // mesure de PM2.5 et PM10
 #ifdef RESEAUWIFI
   File          ficMes;                                         // fichier de stockage temporaire des mesures non envoyées
@@ -61,11 +57,6 @@
   DTime         tokenExpire;                                    // date d'expiration du token
   DTime         dateRef;                                        // date d'initialisation (externe)
   unsigned long milliRef;                                       // date d'initialisation (interne)
-#endif
-#ifdef COMPRESSION                                               
-  Mesure        mesEnvoi[NB_MES][TAILLE_ECH];                   // tableau des mesures à envoyer
-  Serie         y0i = Serie(TAILLE_ECH, "y0i");                 // mesures à compresser
-  Serie         y0r = Serie(TAILLE_ECH, "y0r");                 // mesures reconstituées après compression/decompression
 #endif
 #ifdef BOARDSIGFOX
   SigfoxMessage payload;                                        // message envoyé par sigfox (12 octets découpés en trois variables de 4 octets)
@@ -78,6 +69,11 @@
 
 //--------------------------------------------- initialisation des objets --------------------------------------------------------------------------------
   Adafruit_NeoPixel   strip(LED_COUNT, LED_PIN, NEO_GRB + NEO_KHZ800);                          // afficheur LED associé au capteur
+
+  int tailleech = TAILLE_ECH;
+  Mesure device = Mesure(4, 8, 0, 0, "Device", listeDevice);
+  Mesure mes[2] = { Mesure(2, 2, 7, tailleech, "PM25", listeMesure), 
+                    Mesure(2, 2, 7, tailleech, "PM10", listeMesure) };
 #ifdef COMPRESSION
   Compressor          comp(NBREG, NBREG0, NBREG1, MINI, MAXI, BIT_0, BIT_1, BITECT, CODAGEECT); // codage des mesures
 #endif
@@ -187,7 +183,7 @@
 //--------------------------------------------- mise à jour des variables serveur et paramètres page web ----------------------------------------------------------                                                                               
 #ifdef RESEAUWIFI
     theme = "wifi    ";
-    if ( (millis() - temps_ref_parametre) >= float(device.tempsCycle)/float(NB_MESURE) ) {     // mise à jour des variables(traitement des données du serveur)
+    if ( (millis() - temps_ref_parametre) >= device.getValF("tempsCycle")/float(NB_MESURE) ) {     // mise à jour des variables(traitement des données du serveur)
       temps_ref_parametre = millis();
       if (!autonom & modeFonc != MODE_VEILLE) AjustementVariables();  }
     WiFiClient client;                                          // mise à jour des paramètres(traitement des requetes des pages web)
@@ -238,46 +234,44 @@
 #endif
 //--------------------------------------------- boucle de réalisation des mesures intermédiaires --------------------------------------------------------------------------------                                                                                     
       if ( (millis() - temps_ref_mesure) >= float(TEMPS_CYCLE)/float(NB_MESURE) ) {
-          theme = "mesure  ";
-          temps_ref_mesure = millis();
-          StripAffiche("debut mesure");
-          LireCapteur();                                        // lecture des données dans pm[]
-          CalculMesure();                                       // ajout des valeurs instantanées dans mes.xxx
-          StripAffiche("fin mesure");
-          nbMesureElem ++;  }
+        theme = "mesure  ";
+        temps_ref_mesure = millis();
+        StripAffiche("debut mesure");
+        LireCapteur();                                        // lecture des données dans pm[]
+        CalculMesure();                                       // ajout des valeurs instantanées dans mes.xxx
+        StripAffiche("fin mesure");
+        nbMesureElem ++;  }
 //--------------------------------------------- boucle principale de mesure --------------------------------------------------------------------------------                                                                               
       if ( nbMesureElem >= NB_MESURE ){
-          theme = "mesure  ";
-          nbMesureElem = 0;
+        theme = "mesure  ";
+        nbMesureElem = 0;
 #ifdef RESEAUWIFI
-          if ((totalMesureNonReprise > 0) & (!autonom)) RepriseEnvoiWifiData();    // essai de renvoi des mesures à renvoyer stockées dans SPIFFS
+        if ((totalMesureNonReprise > 0) & (!autonom)) RepriseEnvoiWifiData();    // essai de renvoi des mesures à renvoyer stockées dans SPIFFS
 #endif
-          GenereMesure();                                       // calcul de la mesure moyenne dans mes.xxx
-          if (MesureOk()) {
-              PrMesure(3);                                     
+        GenereMesure();                                       // calcul de la mesure moyenne dans mes.xxx
+        if (MesureOk()) {
 #ifdef RESEAUWIFI
-              EnvoiWifiMesure(); }                              // envoi sur le serveur (et stockage fichier si KO)
-#else
-              GroupeMesure();  }                                // ajout de la mesure au groupe de mesure à envoyer par Sigfox   
+          EnvoiWifiMesure();                                  // envoi sur le serveur (et stockage fichier si KO)
 #endif
-          else {
-            StripAffiche("mesure a afficher incorrecte");
-            delay(2000); }
-          device.niveauBatterie = MesureBatterie();             //  à mettre en place (mesure)
+          PrMesure(3); }                                    
+        else {
+          StripAffiche("mesure a afficher incorrecte");
+          delay(2000); }
+        device.setVal("niveauBatterie", MesureBatterie());             //  à mettre en place (mesure)
 #ifdef COMPRESSION
-          nbMesureGroupe ++;
+        nbMesureGroupe ++;
 #endif
-          UpdateLed( mes[device.mesureLED].valeur );            // affichge du niveau sur les LED
-          InitMesureRessenti(); }                               // dépend de la gestion du ressenti (maintenu ou non maintenu) -> à clarifier
+        int nled = round(device.getValF("mesureLED"));
+        UpdateLed( mes[nled]["valeur"][0] );            // affichge du niveau sur les LED
+        //InitMesureRessenti(); }                               // dépend de la gestion du ressenti (maintenu ou non maintenu) -> à clarifier
 //--------------------------------------------- boucle d'envoi des données groupées --------------------------------------------------------------------------------                                                                               
 #ifdef COMPRESSION                                              // à actualiser
-      if ( nbMesureGroupe >= TAILLE_ECH ){
+        if ( nbMesureGroupe >= TAILLE_ECH ){
           nbMesureGroupe = 0;      
           GenereGroupe();                                       // préparation des données à compresser avant envoi
-          PrSerie(3, y0i);
-          String res = comp.calcul(y0i, true);
-          PrSerie(3, comp.simul());
           EnvoiSigfox(); }                                      // envoi sigfox des données compressées
 #endif
+        RefreshMesure();
+      }
     }
   }

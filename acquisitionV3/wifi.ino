@@ -13,10 +13,10 @@
     StripAffiche("demarrage");
     WiFi.macAddress(mac);
     Log(3, "Connected to : " + WiFi.SSID(), WiFi.psk());
-    devType.adresseIP = WiFi.localIP().toString();
-    Log(0, "IP   address : ", devType.adresseIP );
-    devType.deviceId = (String)mac[5] + " " + (String)mac[4] + " " + (String)mac[3] + " " + (String)mac[2] + " " + (String)mac[1] + " " + (String)mac[0];
-    Log(0, "MAC  address : ", devType.deviceId );
+    device.setVal("adresseIP", WiFi.localIP().toString());
+    Log(0, "IP   address : ", device.getValS("adresseIP"));
+    device.setVal("deviceId", (String)mac[5] + " " + (String)mac[4] + " " + (String)mac[3] + " " + (String)mac[2] + " " + (String)mac[1] + " " + (String)mac[0]);
+    Log(0, "MAC  address : ", device.getValS("deviceId"));
     //Log(3, "MAC  address : ", String((char *)mac));
     MajToken();                                                    // initialisation token et date
     RepriseEnvoiWifiData();                                        // renvoi des mesures stockées dans SPIFFS
@@ -27,11 +27,11 @@
     DynamicJsonDocument param(capacity);
     String JSONmessage = "";
     param["device"]               = DEVICE_NAME;
-    param["feeling"]              = device.ressenti;
+    param["feeling"]              = device.getValS("ressenti");
     param["mode_fonctionnement"]  = modeFonc;
     param["mode_log"]             = modeLog;
     //param["mode_lum"]             = modeLuminosite;
-    param["niv_batt"]             = String(device.niveauBatterie);
+    param["niv_batt"]             = String(device.getValF("niveauBatterie"));
     serializeJson(param, JSONmessage);
     return JSONmessage;
   }
@@ -56,19 +56,16 @@
       DeserializationError err = deserializeJson(login, retourLogin);
       if (err) Log(2, "deserialisation reponse envoi login errone : " + String(err.c_str()), "");
       else {
-                    // calcul de token
+        // calcul de token
         Log(4, "payload token :" + retourLogin, "");    
         String sensor = login["token"]; 
         tokenValeur   = String("Bearer " + sensor);
         String expDate = login["exp_date"];
-                    // calcul de date
-
+        
+        // calcul de date
         String dateServeur = login["date"];
         dateRef = stringToDate(dateServeur);
         milliRef = millis();
-        //unsigned long dateLogin = millis()/100;
-        //const char* dateServeur = login["date"];
-        //InitDateRef(dateLogin, dateServeur);
         tokenExpire = stringToDate(expDate);
         Serial.println(dateRef.timestamp);
         Serial.println(tokenExpire.timestamp);
@@ -243,16 +240,16 @@
       
       int pTempsCycle = param0["temps_cycle"];
       if ((pTempsCycle > 2000) & (pTempsCycle < 3600000)) {
-        if (pTempsCycle != device.tempsCycle) {
+        if (pTempsCycle != round(device.getValF("tempsCycle"))) {
           Log(0,"nouveau temps de cycle en ms : ", String(pTempsCycle));
-          device.tempsCycle = pTempsCycle;  }  }
+          device.setVal("tempsCycle", float(pTempsCycle));  }  }
       else Log(4,"temps de cycle incorrect : ", "");
     
       int pMesureLED = param0["mesure_led"];
       if ((pMesureLED > -1) & (pMesureLED < NB_MES)) {
-        if (pMesureLED != device.mesureLED) {
+        if (pMesureLED != round(device.getValF("mesureLED"))) {
           Log(0,"nouvelle mesure a afficher sur la LED : ", String(pMesureLED));
-          device.mesureLED = pMesureLED;  }  }
+          device.setVal("mesureLED", float(pMesureLED));  }  }
       else Log(4,"mesure a afficher sur la LED incorrecte : ", String(pMesureLED));  }
     return err;
   }  
@@ -288,7 +285,7 @@
       modeFonc = ValideListe(pmodeFonc, MODE_NORMAL, MODE_VEILLE, MODE_AUTONOME, modeFonc, "mode de fonctionnement");
 
       const char* pRessenti = param["ressenti"];
-      device.ressenti = ValideListe(pRessenti, RESSENTI_BIEN, RESSENTI_NORMAL, RESSENTI_PASBIEN, device.ressenti, "ressenti");  }
+      device.setVal("ressenti", ValideListe(pRessenti, RESSENTI_BIEN, RESSENTI_NORMAL, RESSENTI_PASBIEN, device.getValS("ressenti"), "ressenti"));  }
     return err;
   }  
 //-----------------------------------------------------------------------------------------------------------------------------  
@@ -302,7 +299,6 @@
     String parametres = server.arg("par");
                         // envoi des valeurs instantanées à la page web
     String valeurInst = "{\"PM25\" : " + String(pm[M_PM25]) + ", \"PM10\" : " + String(pm[M_PM10]) + "}";
-    //Log(4, "json mesure: " + valeurInst, "");
     server.send(200, "application/json", valeurInst);
     Log(4, "parametres : " + parametres, "");
     Log(3, "envoi mesures", valeurInst);
@@ -322,15 +318,12 @@
   DTime calculDate(unsigned long dateI) { DTime date((dateI - milliRef) / 1000 + dateRef.timestamp); return date; }
 //-----------------------------------------------------------------------------------------------------------------------------
   unsigned long calculDateInt(DTime date) { return (date.timestamp - dateRef.timestamp) * 1000; }
-  //-----------------------------------------------------------------------------------------------------------------------------
-DTime stringToDate(String chaine) {
+//-----------------------------------------------------------------------------------------------------------------------------
+  DTime stringToDate(String chaine) {
     DTime date;
     if (chaine.length() > 15) {
       date.setDate(chaine.substring(0, 4).toInt(), chaine.substring(5, 7).toInt(), chaine.substring(8, 10).toInt());
       date.setTime(chaine.substring(11, 13).toInt(), chaine.substring(14, 16).toInt(), chaine.substring(17, 19).toInt());
-      Serial.println(chaine.substring(0, 4) + chaine.substring(5, 7) + chaine.substring(8, 10));
-      Serial.println(chaine.substring(0, 4).toInt()); 
-      Serial.println(date.year);
     }
     else Log(2, "date serveur non exploitable (taille < 15) : ", String(chaine.length()));
     return date;
